@@ -3,3 +3,4 @@ dist
 _internal
 калькулятор.exe
 node_modules
+__pycache__
