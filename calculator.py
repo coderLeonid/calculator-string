@@ -1303,7 +1303,7 @@ def key_calc(key):
                         try:
                             theme_is_light = settings['theme'] == 'light'
                             color1 = ('#' + 'c0' * 3, '#' + '1f' * 3)[theme_is_light]
-                            color2 = ('#' + 'c0' * 3, '#' + '3f' * 3)[theme_is_light]
+                            color2 = ('#' + '90' * 3, '#' + '5f' * 3)[theme_is_light]
                             text_entry.insert(0.0, date_time_rounding + '\n' + '\n', f'history_{color2}')
                             text_entry.insert(0.0, history_res + '\n', f'history_{color1}')
                             text_entry.insert(0.0, perfect_example + '\n', f'history_{color1}')
