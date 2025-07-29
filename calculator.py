@@ -763,14 +763,14 @@ def create_added_win(win_type):
     added_win.protocol('WM_DELETE_WINDOW', lambda: manage_not_main_window_close())
     added_win.attributes('-alpha', '0.975')
     
-    text_entry = Text(added_win, bg=('#' + '20' * 3, '#' + 'd9' * 3)[settings['theme'] == 'light'], fg=entry_box.cget('fg'), font=(('Comic Sans', 10, 'bold', 'italic'), ('Arial', 16, 'bold'))[is_help])
+    text_entry = Text(added_win, bg=('#' + '10' * 3, '#' + 'e9' * 3)[settings['theme'] == 'light'], fg=entry_box.cget('fg'), font=(('Arial', 11, 'bold'), ('Arial', 16, 'bold'))[is_help])
     text_entry.place(x=2, y=2, width=WIDTH - 30, height=MAX_COORD - 104)
     
     scrollbar_history_calc = ttk.Scrollbar(added_win, orient='vertical', command=text_entry.yview)
     scrollbar_history_calc.pack(side=RIGHT, fill=Y)
     text_entry['yscrollcommand'] = scrollbar_history_calc.set
     
-    text_entry.config(insertbackground=entry_box.cget('insertbackground'), selectbackground=('#' + '30' * 3, '#' + 'c7' * 3)[settings['theme'] == 'light'], insertwidth=1)
+    text_entry.config(insertbackground=entry_box.cget('insertbackground'), selectbackground=('#' + '40' * 3, '#' + 'b7' * 3)[settings['theme'] == 'light'], insertwidth=1)
     
     text_entry.bind('<Key>', disable_editing_added_win_text)
     
@@ -863,7 +863,7 @@ main_win['bg'] = white_or_black
 entry_box = Entry(main_win, font=('Arial', HEIGHT // 2), fg=white_or_black, bg=white_or_black, borderwidth=0, insertwidth=1, insertontime=700, insertofftime=500)
 entry_box.insert(END, recents['example before closing'])
 entry_box.icursor(recents['cursor before closing'])
-entry_box.focus_force()
+entry_box.focus_set()
 cursor_index = entry_box.index('insert')
 indexes_of_selection = None
 can_backspace = entry_box.index('insert') != 0
@@ -1302,8 +1302,8 @@ def key_calc(key):
                     if added_win.title() != invisible_win_title:
                         try:
                             theme_is_light = settings['theme'] == 'light'
-                            color1 = ('#' + 'b0' * 3, '#' + '2f' * 3)[theme_is_light]
-                            color2 = ('#' + '80' * 3, '#' + '6f' * 3)[theme_is_light]
+                            color1 = ('#' + 'c0' * 3, '#' + '1f' * 3)[theme_is_light]
+                            color2 = ('#' + 'c0' * 3, '#' + '3f' * 3)[theme_is_light]
                             text_entry.insert(0.0, date_time_rounding + '\n' + '\n', f'history_{color2}')
                             text_entry.insert(0.0, history_res + '\n', f'history_{color1}')
                             text_entry.insert(0.0, perfect_example + '\n', f'history_{color1}')
@@ -1919,10 +1919,10 @@ def close_main_win():
       
 def config_fg_and_insertbackground():
     theme_is_light = settings['theme'] == 'light'
-    entry_box.config(fg=('#' + 'b0' * 3, '#' + '2f' * 3)[theme_is_light] if example_value not in ('ထ', '+ထ', '-ထ') else ('#b0b054', '#3f3f8b')[theme_is_light])
-    result.config(fg=('#' + '88' * 3, '#' + '4f' * 3)[theme_is_light] if example_value not in ('ထ', '+ထ', '-ထ') else ('#909054', '#5f5f9b')[theme_is_light])
+    entry_box.config(fg=('#' + 'c0' * 3, '#' + '1f' * 3)[theme_is_light] if example_value not in ('ထ', '+ထ', '-ထ') else ('#b0b054', '#3f3f8b')[theme_is_light])
+    result.config(fg=('#' + '98' * 3, '#' + '3f' * 3)[theme_is_light] if example_value not in ('ထ', '+ထ', '-ထ') else ('#909054', '#5f5f9b')[theme_is_light])
     if not all([symbol in correct_answer_num_symbols for symbol in result.get().replace('=', '')]) and example_value not in ('ထ', '+ထ', '-ထ'):
-       result.config(fg=('#' + '60' * 3, '#' + '7f' * 3)[theme_is_light])
+       result.config(fg=('#' + '70' * 3, '#' + '6f' * 3)[theme_is_light])
     change_selection_colors_to_normal(theme_is_light)
         
 
@@ -1969,7 +1969,6 @@ main_win.bind('<Control-T>', change_theme)
 calculate_result()
 
 if time.time() - recents['closing time'][-1] > 15:
-    user32.keybd_event(0xC0, 0, 0, 0)  # Нажатие '`' на низкоуровневом программировании (категорически запрещено удалять!)
-    user32.keybd_event(0xC0, 0, 2, 0)  # Отпускание '`' на низкоуровневом программировании (категорически запрещено удалять!)
+    change_text('', 0, len(entry_box.get()))
 
 main_win.mainloop()
