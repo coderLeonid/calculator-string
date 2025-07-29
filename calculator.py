@@ -763,7 +763,7 @@ def create_added_win(win_type):
     added_win.protocol('WM_DELETE_WINDOW', lambda: manage_not_main_window_close())
     added_win.attributes('-alpha', '0.975')
     
-    text_entry = Text(added_win, bg=('#' + '10' * 3, '#' + 'e9' * 3)[settings['theme'] == 'light'], fg=entry_box.cget('fg'), font=(('Arial', 11, 'bold'), ('Arial', 16, 'bold'))[is_help])
+    text_entry = Text(added_win, bg=('#' + '10' * 3, '#' + 'e9' * 3)[settings['theme'] == 'light'], fg=entry_box.cget('fg'), font=(('Arial', 10, 'bold'), ('Arial', 16, 'bold'))[is_help])
     text_entry.place(x=2, y=2, width=WIDTH - 30, height=MAX_COORD - 104)
     
     scrollbar_history_calc = ttk.Scrollbar(added_win, orient='vertical', command=text_entry.yview)
@@ -832,7 +832,7 @@ def finish_to_history_win():
     added_win.bind('<Control-Alt-Down>', lambda key: scroll_text(1))
     
     color1 = ('#' + 'b0' * 3, '#' + '2f' * 3)[theme_is_light]
-    color2 = ('#' + '80' * 3, '#' + '6f' * 3)[theme_is_light]
+    color2 = ('#' + '90' * 3, '#' + '5f' * 3)[theme_is_light]
     [text_entry.tag_config(f'history_{color1}', foreground=color1), text_entry.tag_config(f'history_{color2}', foreground=color2)]
     tags = (None, f'history_{color1}', f'history_{color1}', f'history_{color2}')
     [text_entry.insert(END, val + '\n', tags[(i + 1) % 4]) for i, val in enumerate(history_of_calculations.split('\n'))]
@@ -1302,7 +1302,7 @@ def key_calc(key):
                     if added_win.title() != invisible_win_title:
                         try:
                             theme_is_light = settings['theme'] == 'light'
-                            color1 = ('#' + 'c0' * 3, '#' + '1f' * 3)[theme_is_light]
+                            color1 = ('#' + 'b0' * 3, '#' + '2f' * 3)[theme_is_light]
                             color2 = ('#' + '90' * 3, '#' + '5f' * 3)[theme_is_light]
                             text_entry.insert(0.0, date_time_rounding + '\n' + '\n', f'history_{color2}')
                             text_entry.insert(0.0, history_res + '\n', f'history_{color1}')
@@ -1741,10 +1741,10 @@ def change_text(pasted, start=None, end=None):
     
     
 def change_selection_colors_to_normal(theme_is_light):
-    entry_box.config(insertbackground=('#d0d0d0', '#2f2f2f')[theme_is_light])
+    entry_box.config(insertbackground=('#e0e0e0', '#1f1f1f')[theme_is_light])
     result.config(insertbackground=entry_box.cget('insertbackground'))
-    entry_box.config(selectforeground=('#' + 'd7' * 3, '#' + '0f' * 3)[theme_is_light], selectbackground=('#' + '50' * 3, '#' + 'a7' * 3)[theme_is_light])
-    result.config(selectforeground=entry_box.cget('selectforeground'), selectbackground=entry_box.cget('selectbackground'))
+    entry_box.config(selectforeground=entry_box.cget('fg'), selectbackground=('#' + '50' * 3, '#' + 'a7' * 3)[theme_is_light])
+    result.config(selectforeground=result.cget('fg'), selectbackground=entry_box.cget('selectbackground'))
     
     
 def change_selection_colors_to_invisible():
@@ -1875,7 +1875,7 @@ def focus_in(event):
     if is_russian_layout():
         hwnd = user32.GetForegroundWindow()
         user32.PostMessageW(hwnd, 0x50, 0, user32.LoadKeyboardLayoutW("00000409", 0x1))
-    main_win['bg'] = ('#' + '48' * 3, '#' + 'b7' * 3)[settings['theme'] == 'light']
+    main_win['bg'] = ('#' + '4f' * 3, '#' + 'b0' * 3)[settings['theme'] == 'light']
     
     entry_box.config(bg=('#' + '27' * 3, '#' + 'd2' * 3)[settings['theme'] == 'light'])
     result.config(bg=entry_box.cget('bg'))
@@ -1919,10 +1919,10 @@ def close_main_win():
       
 def config_fg_and_insertbackground():
     theme_is_light = settings['theme'] == 'light'
-    entry_box.config(fg=('#' + 'c0' * 3, '#' + '1f' * 3)[theme_is_light] if example_value not in ('ထ', '+ထ', '-ထ') else ('#b0b054', '#3f3f8b')[theme_is_light])
-    result.config(fg=('#' + '98' * 3, '#' + '3f' * 3)[theme_is_light] if example_value not in ('ထ', '+ထ', '-ထ') else ('#909054', '#5f5f9b')[theme_is_light])
+    entry_box.config(fg=('#' + 'd0' * 3, '#' + '0f' * 3)[theme_is_light] if example_value not in ('ထ', '+ထ', '-ထ') else ('#b0b054', '#3f3f8b')[theme_is_light])
+    result.config(fg=('#' + 'b0' * 3, '#' + '2f' * 3)[theme_is_light] if example_value not in ('ထ', '+ထ', '-ထ') else ('#909054', '#5f5f9b')[theme_is_light])
     if not all([symbol in correct_answer_num_symbols for symbol in result.get().replace('=', '')]) and example_value not in ('ထ', '+ထ', '-ထ'):
-       result.config(fg=('#' + '70' * 3, '#' + '6f' * 3)[theme_is_light])
+       result.config(fg=('#' + 'a8' * 3, '#' + '37' * 3)[theme_is_light])
     change_selection_colors_to_normal(theme_is_light)
         
 
