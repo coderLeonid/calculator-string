@@ -99,7 +99,7 @@ with open(f'{FILES}/recents.json', 'r') as recents_file:
         recents = json.load(recents_file)
     except json.decoder.JSONDecodeError:
         recents = {'closing time': [0 for _ in range(3)], 'example before closing': '', 'cursor before closing': 0, 'cursor before moving calc': 0,
-                   'recent examples': [['', '', '', ''] for _ in range(20)], 'last examples': [['', '', '', '', ''],],
+                   'recent examples': [['', '', '', ''] for _ in range(20)], 'last examples': [['', '', '', '', '', ''],],
                    'low': MAX_COORD, 'mid': MAX_COORD // 2, 'top': 0, 'mouse coords': {'x': 0, 'y': 0}}
         rewrite_json('recents')
 with open(f'{FILES}/settings.json', 'r') as settings_file:
@@ -818,7 +818,7 @@ def finish_to_help_win():
     text_entry.delete(1.0, END)
     for i in range(len(splitted_text_entry)):
         val = splitted_text_entry[i] + '\n'
-        tag_rows = (12, 20, 11, 8, 8)
+        tag_rows = (12, 20, 11, 8, 9)
         a, b, c, d, e = (sum(tag_rows[:i + 1]) for i in range(5))
         size = (14, 16)[i in (2, a, b, c, d, e)]
         color = (black, purple, green, gray, red, red)[(i >= a) + (i >= b) + (i >= c) + (i >= d) + (i >= e)]
@@ -1279,7 +1279,7 @@ def key_calc(key):
                     example_value = entry_box.get()
                     cursor_index = entry_box.index('insert')
                 value_to_add = [example_value, result.get().strip('='), perfect_example, cursor_index]
-                value_to_add_plus = [example_value, re.sub(r' ?\[.*\]', '', result.get().strip('=')) if example_value else '', '', cursor_index, indexes_of_selection if indexes_of_selection else None]
+                value_to_add_plus = [example_value, re.sub(r' ?\[.*\]', '', result.get().strip('=')) if example_value else '', '', cursor_index, indexes_of_selection if indexes_of_selection else None, settings['round']]
                 if add_to_recents(example_value):
                     recents['recent examples'].append(value_to_add)
                 if value_to_add_plus != recents['last examples'][-1]:
@@ -1321,7 +1321,7 @@ def key_calc(key):
                 example_value = entry_box.get()
                 cursor_index = entry_box.index('insert')
             value_to_add = [example_value, result.get().strip('='), perfect_example, cursor_index]
-            value_to_add_plus = [example_value, re.sub(r' ?\[.*\]', '', result.get().strip('=')) if example_value else '', '', cursor_index, indexes_of_selection if indexes_of_selection else None]
+            value_to_add_plus = [example_value, re.sub(r' ?\[.*\]', '', result.get().strip('=')) if example_value else '', '', cursor_index, indexes_of_selection if indexes_of_selection else None], settings['round']
             if add_to_recents(example_value):
                 recents['recent examples'].append(value_to_add)
             if value_to_add_plus != recents['last examples'][-1]:
@@ -1357,11 +1357,18 @@ def real_key_calc(key):
         add_to_last_examples_if_selection_or_cursor_change()
 
 
-def insert_values_in_inputs_without_date(new_entry_box_value, new_result_value, date_time_rounding, symbol, new_cursor_index=None, new_indexes_of_selection=None):
+def insert_values_in_inputs_without_date(new_entry_box_value, new_result_value, date_time_rounding, symbol, new_cursor_index, new_indexes_of_selection, rounding_to='по умолчанию'):
     global example_value, cursor_index, can_backspace, indexes_of_selection
     entry_box.insert(END, new_entry_box_value)
     subbed_new_result_value = re.sub(r' ?\[.+\]', r'', new_result_value)
-    result.insert(END, f'{symbol}{subbed_new_result_value}{' ' * bool(subbed_new_result_value)}[{date_time_rounding}]')
+    
+    rounding_in_history = ''
+    if str(rounding_to).strip('-').isdigit():
+        manual_round_abs = abs(rounding_to)
+        num_of_ending_symbols = (0 < manual_round_abs % 10 < 5 and manual_round_abs // 10 != 1) + (manual_round_abs % 10 == 1 and manual_round_abs != 11)
+        rounding_in_history = f'{f' ({manual_round_abs} знак{('ов', 'а', '')[num_of_ending_symbols]} {('перед', 'после')[rounding_to > 0]} запятой)'}'
+    
+    result.insert(END, f'{symbol}{subbed_new_result_value}{' ' * bool(subbed_new_result_value)}[{date_time_rounding}{rounding_in_history}]')
     
     example_value = entry_box.get().lower()
     cursor_index = entry_box.index('insert')
@@ -1389,9 +1396,9 @@ def insert_values_in_inputs(new_entry_box_value, new_result_value, date_time_rou
     indexes_of_selection = None
     
     value_to_add = [example_value, result.get().strip('='), perfect_example, cursor_index]
-    value_to_add_plus = [example_value, re.sub(r' ?\[.*\]', '', result.get().strip('=')) if example_value else '', '', cursor_index, indexes_of_selection if indexes_of_selection else None]
+    value_to_add_plus = [example_value, re.sub(r' ?\[.*\]', '', result.get().strip('=')) if example_value else '', '', cursor_index, indexes_of_selection if indexes_of_selection else None, settings['round']]
     if add_to_recents(example_value):
-        recents['recent examples'].append(['', calculator_greeting, '', 0, ''])
+        recents['recent examples'].append(['', calculator_greeting, '', 0, '', 'по умолчанию'])
         recents['recent examples'].append(value_to_add)
     if value_to_add_plus != recents['last examples'][-1]:
         recents['last examples'].append(value_to_add_plus)
@@ -1412,15 +1419,15 @@ def ctrl_y(self):
     if i_last_example == 'past':
         i_last_example = 0
         insert_values_in_inputs_without_date(*last_examples[i_last_example][:2], f'{len(last_examples) - (i_last_example + 1)} действи{get_correct_ending(len(last_examples) - (i_last_example + 1), word_ends1)} назад',
-                                             get_writing_form(re.sub(r' ?\[.+\]', r'', last_examples[i_last_example][1])), *last_examples[i_last_example][3:5])
+                                             get_writing_form(re.sub(r' ?\[.+\]', r'', last_examples[i_last_example][1])), *last_examples[i_last_example][3:6])
     elif i_last_example < len(last_examples) - 2:
         i_last_example += 1
         insert_values_in_inputs_without_date(*last_examples[i_last_example][:2], f'{len(last_examples) - (i_last_example + 1)} действи{get_correct_ending(len(last_examples) - (i_last_example + 1), word_ends1)} назад',
-                                             get_writing_form(re.sub(r' ?\[.+\]', r'', last_examples[i_last_example][1])), *last_examples[i_last_example][3:5])
+                                             get_writing_form(re.sub(r' ?\[.+\]', r'', last_examples[i_last_example][1])), *last_examples[i_last_example][3:6])
     else:
         i_last_example = 'future'
         solved_example = solve_example(last_example_value)
-        insert_values_in_inputs_without_date(last_example_value, solved_example, 'Последний введённый пример', '=' if all((symbol in correct_answer_num_symbols for symbol in solved_example)) else ' ' * bool(last_example_value), last_example_cursor, last_example_selection)
+        insert_values_in_inputs_without_date(last_example_value, solved_example, 'Последний введённый пример', '=' if all((symbol in correct_answer_num_symbols for symbol in solved_example)) else ' ' * bool(last_example_value), last_example_cursor, last_example_selection, ROUND_ANSWER_TO_MANUALLY)
     change_width_of_entry(entry_box.get(), entry_box, result)
     config_fg_and_insertbackground()
         
@@ -1440,14 +1447,14 @@ def ctrl_z(self):
         last_example_value = example_value
         i_last_example = len(last_examples) - 2
         insert_values_in_inputs_without_date(*last_examples[i_last_example][:2], f'{len(last_examples) - (i_last_example + 1)} действи{get_correct_ending(len(last_examples) - (i_last_example + 1), word_ends1)} назад',
-                                             get_writing_form(re.sub(r' ?\[.+\]', r'', last_examples[i_last_example][1])), *last_examples[i_last_example][3:5])
+                                             get_writing_form(re.sub(r' ?\[.+\]', r'', last_examples[i_last_example][1])), *last_examples[i_last_example][3:6])
     elif i_last_example > 0:
         i_last_example -= 1
         insert_values_in_inputs_without_date(*last_examples[i_last_example][:2], f'{len(last_examples) - (i_last_example + 1)} действи{get_correct_ending(len(last_examples) - (i_last_example + 1), word_ends1)} назад',
-                                             get_writing_form(re.sub(r' ?\[.+\]', r'', last_examples[i_last_example][1])), *last_examples[i_last_example][3:5])
+                                             get_writing_form(re.sub(r' ?\[.+\]', r'', last_examples[i_last_example][1])), *last_examples[i_last_example][3:6])
     else:
         i_last_example = 'past'
-        insert_values_in_inputs_without_date('Более ранняя история ваших действий не сохранилась!', 'Неизвестно, что было', 'Много действий назад', ' ', None)
+        insert_values_in_inputs_without_date('Более ранняя история ваших действий не сохранилась!', 'Неизвестно, что было', 'Много действий назад', ' ', None, 'по умолчанию')
     change_width_of_entry(entry_box.get(), entry_box, result)
     config_fg_and_insertbackground()
 
@@ -1519,7 +1526,7 @@ def move_down(key):
     
     
 def add_to_last_examples_if_selection_or_cursor_change():
-    value_to_add_plus = [example_value, re.sub(r' ?\[.*\]', '', result.get().strip('=')) if example_value else '', '', cursor_index, indexes_of_selection if indexes_of_selection else None]
+    value_to_add_plus = [example_value, re.sub(r' ?\[.*\]', '', result.get().strip('=')) if example_value else '', '', cursor_index, indexes_of_selection if indexes_of_selection else None, settings['round']]
     if value_to_add_plus != recents['last examples'][-1]:
         recents['last examples'].append(value_to_add_plus)
     if len(recents['last examples']) > 500:
@@ -1552,19 +1559,20 @@ def define_future_of_cursor(side, right_without_ctrls_and_shifts=False):
         if i:
             temp_cursor_index += i
             return temp_cursor_index
-        temp_cursor_index += len(re.match(r'(?:[+\-•/^√ ]|mod|div)*', replaced_abs_value[temp_cursor_index:])[0])
-        i = len(re.match(r'(?:\)|u)*', replaced_abs_value[temp_cursor_index:])[0])
+        temp_cursor_index += len(re.match(r'(?:[+\-•/:^√= ]|mod|div)*', replaced_abs_value[temp_cursor_index:])[0])
+        i = len(re.match(r'(?:\)|u|\])*', replaced_abs_value[temp_cursor_index:])[0])
         temp_cursor_index += i
         if i < 2:
-            temp_cursor_index += len(re.match(r'(?:[+\-•/^√ ]|mod|div)*', replaced_abs_value[temp_cursor_index:])[0])
+            temp_cursor_index += len(re.match(r'(?:[+\-•/:^√= ]|mod|div)*', replaced_abs_value[temp_cursor_index:])[0])
         if re.match(r'log', replaced_abs_value[temp_cursor_index:]):
             for i in range(3, len(replaced_abs_value[temp_cursor_index:]) + 1):
                 if replaced_abs_value[temp_cursor_index:temp_cursor_index + i].count('log') == replaced_abs_value[temp_cursor_index:temp_cursor_index + i].count('by'):
                     break
             temp_cursor_index += i
         temp_cursor_index += len(re.match(r'sin|cos|tg|ctg|ln|lg|by|', replaced_abs_value[temp_cursor_index:])[0])
-        if replaced_abs_value[temp_cursor_index:temp_cursor_index + 1] in list('U('):
-            open_brack, closed_brack = replaced_abs_value[temp_cursor_index:temp_cursor_index + 1], 'u)'[replaced_abs_value[temp_cursor_index:temp_cursor_index + 1] == '(']
+        if replaced_abs_value[temp_cursor_index:temp_cursor_index + 1] in list('U(['):
+            nxt_scope = replaced_abs_value[temp_cursor_index:temp_cursor_index + 1]
+            open_brack, closed_brack = nxt_scope, 'u)]'[(nxt_scope == '(') + 2 * (nxt_scope == '[')]
             for i in range(1, len(replaced_abs_value[temp_cursor_index:]) + 1):
                 if replaced_abs_value[temp_cursor_index:temp_cursor_index + i].count(open_brack) == replaced_abs_value[temp_cursor_index:temp_cursor_index + i].count(closed_brack):
                     break
@@ -1578,13 +1586,14 @@ def define_future_of_cursor(side, right_without_ctrls_and_shifts=False):
         if i:
             temp_cursor_index -= i
             return temp_cursor_index
-        temp_cursor_index -= len(re.search(r'(?:[+\-•/^! ]|mod|div)*$', replaced_abs_value[:temp_cursor_index])[0])
-        i = len(re.search(r'(?:\(|U)*$', replaced_abs_value[:temp_cursor_index])[0])
+        temp_cursor_index -= len(re.search(r'(?:[+\-•/:^!= ]|mod|div)*$', replaced_abs_value[:temp_cursor_index])[0])
+        i = len(re.search(r'(?:\(|U|\[)*$', replaced_abs_value[:temp_cursor_index])[0])
         temp_cursor_index -= i
         if i < 2:
-            temp_cursor_index -= len(re.search(r'(?:[+\-•/^! ]|mod|div)*$', replaced_abs_value[:temp_cursor_index])[0])
-        if replaced_abs_value[temp_cursor_index - 1:temp_cursor_index] in list('u)'):
-            open_brack, closed_brack = 'U('[replaced_abs_value[temp_cursor_index - 1:temp_cursor_index] == ')'], replaced_abs_value[temp_cursor_index - 1:temp_cursor_index]
+            temp_cursor_index -= len(re.search(r'(?:[+\-•/:^!= ]|mod|div)*$', replaced_abs_value[:temp_cursor_index])[0])
+        if replaced_abs_value[temp_cursor_index - 1:temp_cursor_index] in list('u)]'):
+            prv_scope = replaced_abs_value[temp_cursor_index - 1:temp_cursor_index]
+            open_brack, closed_brack = 'U(['[(prv_scope == ')') + 2 * (prv_scope == ']')], prv_scope
             for i in range(len(replaced_abs_value[:temp_cursor_index]) - 1, -1, -1):
                 if replaced_abs_value[i:temp_cursor_index].count(open_brack) == replaced_abs_value[i:temp_cursor_index].count(closed_brack):
                     break
@@ -1592,7 +1601,7 @@ def define_future_of_cursor(side, right_without_ctrls_and_shifts=False):
 
         else:
             temp_cursor_index -= len(re.search(r'√*(?:[φπe]|\d*\.?\d*)?$', replaced_abs_value[:temp_cursor_index])[0])
-            if re.search(r'(?:\(|U|^)-$', replaced_abs_value[:temp_cursor_index]):
+            if re.search(r'(?:\(|U|\[|^)-$', replaced_abs_value[:temp_cursor_index]):
                 temp_cursor_index -= 1
         temp_cursor_index -= len(re.search(r'(?:sin|cos|tg|ctg|ln|lg|)$', replaced_abs_value[:temp_cursor_index])[0])
         if re.search(r'by$', replaced_abs_value[:temp_cursor_index]):
@@ -1971,5 +1980,6 @@ calculate_result()
 
 if time.time() - recents['closing time'][-1] > 15:
     change_text('', 0, len(entry_box.get()))
+    ROUND_ANSWER_TO_MANUALLY = settings['round'] = 'по умолчанию'
 
 main_win.mainloop()
