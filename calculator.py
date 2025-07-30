@@ -770,7 +770,7 @@ def create_added_win(win_type):
     scrollbar_history_calc.pack(side=RIGHT, fill=Y)
     text_entry['yscrollcommand'] = scrollbar_history_calc.set
     
-    text_entry.config(insertbackground=entry_box.cget('insertbackground'), selectbackground=('#' + '40' * 3, '#' + 'b7' * 3)[settings['theme'] == 'light'], insertwidth=1)
+    text_entry.config(insertbackground=entry_box.cget('insertbackground'), selectbackground=('#' + '38' * 3, '#' + 'b7' * 3)[settings['theme'] == 'light'], insertwidth=1)
     
     text_entry.bind('<Key>', disable_editing_added_win_text)
     
@@ -804,7 +804,7 @@ def create_added_win(win_type):
 
 def finish_to_help_win():
     theme_is_light = settings['theme'] == 'light'
-    title, text = ('Arial', 16, 'bold', 'italic'), ('Arial', 14)
+    title, text = ('Arial', 16, 'bold'), ('Arial', 14)
     
     black = ("#bbbbbb", 'black')[theme_is_light]
     green = ("#429442", 'green')[theme_is_light]
@@ -1834,7 +1834,7 @@ main_win.bind('?', lambda key: create_added_win('?'))
 main_win.bind('<Control-slash>', lambda key: create_added_win('?'))
 main_win.bind('<Control-h>', lambda key: create_added_win('h'))
 main_win.bind('<Control-H>', lambda key: create_added_win('h'))
-main_win.bind('<Control-space>', lambda key: (pyautogui.hotkey('Alt', 'Tab'), pyautogui.press('Enter')))
+main_win.bind('<Control-space>', lambda key: (pyautogui.hotkey('Alt', 'Tab'), time.sleep(0.05), pyautogui.press('Enter')))
 
 main_win.bind('<Motion>', save_index)
 
@@ -1844,7 +1844,6 @@ main_win.bind('<ButtonRelease-3>', set_main_focus)
 
 main_win.bind('<ButtonPress-1>', on_pushing_left_button)
 main_win.bind("<B1-Motion>", move_main_win)
-
 
 main_win.bind('<Control-Shift-Up>', move_up)
 main_win.bind('<Control-Shift-Down>', move_down)
@@ -1921,7 +1920,9 @@ def config_fg_and_insertbackground():
     theme_is_light = settings['theme'] == 'light'
     entry_box.config(fg=('#' + 'd0' * 3, '#' + '0f' * 3)[theme_is_light] if example_value not in ('ထ', '+ထ', '-ထ') else ('#b0b054', '#3f3f8b')[theme_is_light])
     result.config(fg=('#' + 'b0' * 3, '#' + '2f' * 3)[theme_is_light] if example_value not in ('ထ', '+ထ', '-ထ') else ('#909054', '#5f5f9b')[theme_is_light])
-    if not all([symbol in correct_answer_num_symbols for symbol in result.get().replace('=', '')]) and example_value not in ('ထ', '+ထ', '-ထ'):
+    if result.get() == calculator_greeting:
+        result.config(fg=('#' + '70' * 3, '#' + '6f' * 3)[theme_is_light])
+    elif not all([symbol in correct_answer_num_symbols for symbol in result.get().replace('=', '')]) and example_value not in ('ထ', '+ထ', '-ထ'):
        result.config(fg=('#' + 'a8' * 3, '#' + '37' * 3)[theme_is_light])
     change_selection_colors_to_normal(theme_is_light)
         
