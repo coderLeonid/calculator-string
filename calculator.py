@@ -259,6 +259,7 @@ def create_perfect_example(non_perfect_example):
 
 
 def rescope_example(unscoped_example):
+    unscoped_example = clear_q_with_content(unscoped_example)
     brackets = ''.join([i for i in unscoped_example if i in '()Uu'])
     
     scope_counter = 0
@@ -291,6 +292,8 @@ def rescope_example(unscoped_example):
 
 def modify_info(example):
     a = '– '
+    if not example:
+        return calculator_greeting
     if example in ('ထ', '+ထ', '-ထ'):
         a += {'ထ': 'Бесконечность', '+ထ': 'положительная Бесконечность', '-ထ': 'отрицательная Бесконечность'}[example]
     if example in ('log()by()', 'ln()', 'lg()'):
@@ -312,20 +315,37 @@ def modify_info(example):
         a += {f'1{2 * z3}': '10^6, миллион', f'1{3 * z3}': '10^9, миллиард', f'1{4 * z3}': '10^12, триллион', f'1{5 * z3}': '10^15, квадриллион',
               f'1{6 * z3}': '10^18, квинтиллион', f'1{7 * z3}': '10^21, секстиллион', f'1{8 * z3}': '10^24, септиллион'}[example]
     return a if a != '– ' else None
+
+
+def q_solve_example(example):
+    return solve_example(clear_q_with_content(example))
     
 
 def solve_example(example=None):
     global perfect_example, ROUND_ANSWER_TO_MANUALLY
     perfect_example = ''
-    example = entry_box.get() if example is None else example
+    example = (entry_box.get() if example is None else example).lower()
     
     modified_info = modify_info(example)
     if modified_info is not None:
         return modified_info
     
-    if not example:
-        return calculator_greeting
-        
+    if 'qq' in example:
+        ROUND_ANSWER_TO_MANUALLY = settings['round'] = 'по умолчанию'
+        return f'{q_solve_example(example)} [округление по умолчанию]'
+    elif 'q' in example:
+        rounding_num = re.findall(r'(?<=q)-?\d+(?=#)', example)
+        mn, mx = min_rounding, max_rounding
+        if not rounding_num:
+            return f'{q_solve_example(example)} [Округление? Допиши до "qN#", где N — от {mn} знаков (перед запятой) до {mx} знаков (после запятой) или qq для округления по умолчанию)]'
+        rounding_num = int(rounding_num[0])
+        if rounding_num > mx or rounding_num < mn:
+            return f'={q_solve_example(example)} [Необходимо задать количество знаков после запятой не более {mx}, но и не менее {mn}!]'
+        ROUND_ANSWER_TO_MANUALLY = settings['round'] = rounding_num
+        manual_round_abs = abs(ROUND_ANSWER_TO_MANUALLY)
+        num_of_ending_symbols = (0 < manual_round_abs % 10 < 5 and manual_round_abs // 10 != 1) + (manual_round_abs % 10 == 1 and manual_round_abs != 11)
+        return f'{q_solve_example(example)} [{manual_round_abs} знак{('ов', 'а', '')[num_of_ending_symbols]} {('перед', 'после')[ROUND_ANSWER_TO_MANUALLY > 0]} запятой]'
+    
     for i in range(2):
         for j in range(-3, 0):
             if example[j:] in ending_symbols:
@@ -335,27 +355,11 @@ def solve_example(example=None):
     for j in range(-3, 0):
         if example[j:] in ending_symbols:
             return 'Ошибка в конце примера!'
-
-    if not example:
-        return ''
-    elif ' ' in example and len(set(example)) == 1:
-        return 'Зачем Вам пробелы?'
+    
+    if ' ' in example and len(set(example)) == 1:
+        return 'Зачем тебе пробелы?'
     elif ')(' in example:
-        return 'Сочетание символов ")(" может быть неправильно растолковано. Возможно, Вы имели ввиду ")•("?'
-    example = example.lower()
-    if 'qq' in example:
-        ROUND_ANSWER_TO_MANUALLY = settings['round'] = 'по умолчанию'
-        return 'Округление по умолчанию активировано'
-    elif 'q' in example:
-        rounding_num = re.findall(r'(?<=q)-?\d+(?=#)', example)
-        mn, mx = min_rounding, max_rounding
-        if not rounding_num:
-            return f'Округление? Пиши "qN#", где N — от {mn} знаков (перед запятой) до {mx} знаков (после запятой) или qq для округления по умолчанию)'
-        rounding_num = int(rounding_num[0])
-        if rounding_num > mx or rounding_num < mn:
-            return f'Необходимо задать количество знаков после запятой не более {mx}, но и не менее {mn}!'
-        ROUND_ANSWER_TO_MANUALLY = settings['round'] = rounding_num
-        return f'Теперь ответ будет округляться до {abs(rounding_num)} знак{('ов', 'а')[abs(rounding_num) % 10 == 1 and abs(rounding_num) != 11]} {('после', 'перед')[rounding_num < 0]} запятой'
+        return 'Сочетание символов ")(" может быть неправильно растолковано. Возможно, ты имеешь ввиду ")•("?'
     elif example == 'h':
         return f'Задай размер памяти истории (от {min_history_length} до {max_history_length})'
     elif example in places:
@@ -473,30 +477,30 @@ def solve_example(example=None):
             if (example[i] in '(+-•:^' or example[i - 2:i + 1] in ('mod', 'div')) and (example[i + 1] == '0') and example[i + 2].isdigit():
                 return f'Почему в примере введено "{example[i + 1:i + 3]}"?'
     example = saved_example
+    
+    if re.search(r'(?:k|sin|cos|tg|ctg|by)-', example):
+        return 'Нельзя число или выражение со знаком минус брать без скобок!'
+    
+    for i in range(len(example) - 2):
+        if example[i + 1] == '|':
+            example = example[:i + 1] + 'Uu'[example[i] in '0123456789!)u' or bool(re.match(r'[+•:^!\)]|mod|div', example[i + 2:]))] + example[i + 2:]
+    example = rescope_example(example)
+    if not example:
+        return 'Что-то не так со скобками, модулем или логарифмом!'
+    
+    while '()' in example_brackets or 'Uu' in example_brackets:
+        example_brackets = example_brackets.replace('()', '').replace('Uu', '')
+    
+    example = f'({example})'.replace('^-', "&").replace(',', '.').replace('(-', '(0-').replace('U-', 'U0-')
+    example = re.sub(r'(\+|!|div|mod|U|u|•|:|\^|-|\(|\)|sin|cos|tg|ctg|ln|lg|k|log|by)', r' \1 ', example)
+    example_for_calculations = [i for i in example.replace("&", ' ^- ').split() if i]
+    
+    perfect_example = create_perfect_example(pre_example)
+    
+    if not perfect_example:
+        return 'Что-то не так со скобками, модулем или логарифмом!'
+    
     try:
-        if re.search(r'(?:k|sin|cos|tg|ctg|by)-', example):
-            return 'Нельзя число или выражение со знаком минус брать без скобок!'
-        
-        for i in range(len(example) - 2):
-            if example[i + 1] == '|':
-                example = example[:i + 1] + 'Uu'[example[i] in '0123456789!)u' or bool(re.match(r'[+•:^!\)]|mod|div', example[i + 2:]))] + example[i + 2:]
-        example = rescope_example(example)
-        if not example:
-            return 'Что-то не так со скобками, модулем или логарифмом!'
-        
-        while '()' in example_brackets or 'Uu' in example_brackets:
-            example_brackets = example_brackets.replace('()', '').replace('Uu', '')
-        
-        calcuso = f'({example})'.replace('^-', "&").replace(',', '.').replace('(-', '(0-').replace('U-', 'U0-')
-        calcuso = re.sub(r'(\+|!|div|mod|U|u|•|:|\^|-|\(|\)|sin|cos|tg|ctg|ln|lg|k|log|by)', r' \1 ', calcuso)
-        calcuso = calcuso.replace("&", ' ^- ')
-        example_for_calculations = [i for i in calcuso.split(' ') if i]
-        
-        perfect_example = create_perfect_example(pre_example)
-        
-        if not perfect_example:
-            return 'Что-то не так со скобками, модулем или логарифмом!'
-        
         i_stop, i_start = 0, -1
         while '(' in example_for_calculations or 'U' in example_for_calculations:
             for i in range(len(example_for_calculations)):
@@ -669,7 +673,7 @@ def solve_example(example=None):
     
     
 def get_writing_form(the_example):
-    return '=' if all((symbol in correct_answer_num_symbols for symbol in the_example)) and the_example else ' ' if the_example != calculator_greeting and the_example and the_example[:1] != ' ' else ''
+    return '=' if is_num(clear_space_and_bracks_with_content(the_example), correct_answer_num_symbols) and the_example else ' ' if the_example != calculator_greeting and the_example and the_example[:1] != ' ' else ''
 
 
 def calculate_result():
@@ -763,7 +767,7 @@ def create_added_win(win_type):
     added_win.protocol('WM_DELETE_WINDOW', lambda: manage_not_main_window_close())
     added_win.attributes('-alpha', '0.975')
     
-    text_entry = Text(added_win, bg=('#' + '10' * 3, '#' + 'e9' * 3)[settings['theme'] == 'light'], fg=entry_box.cget('fg'), font=(('Arial', 10, 'bold'), ('Arial', 16, 'bold'))[is_help])
+    text_entry = Text(added_win, bg=('#' + '10' * 3, '#' + 'e9' * 3)[settings['theme'] == 'light'], fg=entry_box.cget('fg'), font=(('Arial', 11, 'bold'), ('Arial', 16, 'bold'))[is_help])
     text_entry.place(x=2, y=2, width=WIDTH - 30, height=MAX_COORD - 104)
     
     scrollbar_history_calc = ttk.Scrollbar(added_win, orient='vertical', command=text_entry.yview)
@@ -967,7 +971,7 @@ def key_calc(key):
     global history_of_calculations, i_history, i_last_example, added_win, settings, example_value, cursor_index, can_backspace, indexes_of_selection
     global keyboard_layout_memory
     
-    min_difference_len = None
+    pre_example_value = example_value
     bypass = bypass2 = False
         
     if i_last_example != 'future' and hasattr(key, 'keysym') and key.keysym not in ('Control_L', 'Control_R'):
@@ -977,7 +981,6 @@ def key_calc(key):
     
 
     if type(key) is tuple:
-        min_difference_len = key[1] - key[0]
         cursor_index = key[0]
         start, end = key
         keysym = 'Up'
@@ -1018,7 +1021,6 @@ def key_calc(key):
                 bypass = True
             elif keysym not in special_keys:
                 example_value = example_value[:start] + example_value[end:]
-                min_difference_len = end - start
                 cursor_index = start
                 indexes_of_selection = None
                 if keysym in ('Delete', 'BackSpace'):
@@ -1217,38 +1219,31 @@ def key_calc(key):
     
     recent_examples = recents['recent examples']
     len_difference = 3
-    if not min_difference_len:
-        min_difference_at_once = (len(recent_examples[-2][0]) > len(recent_examples[-3][0]) or 'q' in recent_examples[-2][0]) and len(recent_examples[-2][0]) - len(recent_examples[-1][0]) > (len_difference if len(recent_examples[-2][0]) > len_difference else len(recent_examples[-2][0]) - 1)
-    else:
-        min_difference_at_once = (len(recent_examples[-2][0]) > len(recent_examples[-3][0]) or 'q' in recent_examples[-2][0]) and end - start > (len_difference if end > len_difference else end - 1)
-    min_difference_at_trice = \
-        len(recent_examples[-1][0]) < len(recent_examples[-2][0]) < len(recent_examples[-3][0]) < len(recent_examples[-4][0]) and (len(recent_examples[-4][0]) > len(recent_examples[-5][0]) or 'q' in recent_examples[-4][0])
-    min_difference_at_twice = \
-        ((len(recent_examples[-1][0]) < len(recent_examples[-2][0]) < len(recent_examples[-3][0]) and (len(recent_examples[-3][0]) > len(recent_examples[-4][0]) or 'q' in recent_examples[-3][0])) and
-         (any((len(recent_examples[-3][0]) == i and len(recent_examples[-1][0]) + i == len(recent_examples[-3][0]) for i in range(2, 2 * len_difference + 1)))
-          or (len(recent_examples[-3][0]) > 2 * len_difference - 1 and len(recent_examples[-1][0]) + 2 * len_difference - 2 <= len(recent_examples[-3][0]))))
-    if keysym in ('grave', 'Return', 'BackSpace', 'Delete', 'apostrophe', 'quotedbl') or min_difference_at_once or min_difference_at_twice or min_difference_at_trice:
+    difference = pre_example_value
+    if difference:
+        for i in range(len(example_value)):
+            if difference[:1] == example_value[i]:
+                difference = difference[1:]
+            else:
+                break
+        for i in range(len(example_value) - 1, -1, -1):
+            if difference[-1:] == example_value[i]:
+                difference = difference[:-1]
+            else:
+                break
+    
+    last_is_not_less = len(recent_examples[-2][0]) >= len(recent_examples[-3][0]) or 'q' in recent_examples[-3][0] and 'q' not in recent_examples[-2][0]
+    num_is_part_of_deleted = re.search(r'[0-9φπe]', difference)
+    min_difference = last_is_not_less and num_is_part_of_deleted
+    print(list(map(lambda i: i[0], recent_examples)))
+    
+    if keysym in ('grave', 'Return', 'BackSpace', 'Delete', 'apostrophe', 'quotedbl') or min_difference:
         indexes_of_selection = None
         perfect_ex_for_ans = ''
         if recent_examples[-1][2] and keysym in ('grave', 'Return'):
             perfect_ex_for_ans = recent_examples[-1][2]
-        elif keysym in ('BackSpace', 'Delete') or min_difference_at_once or min_difference_at_twice or min_difference_at_trice:
-            if len(recent_examples[-2][2]) not in range(1, len_difference + 1) and min_difference_at_once:
-                perfect_ex_for_ans = recent_examples[-2][2]
-            elif min_difference_at_trice:
-                for i in range(4, 0, -1):
-                    if all((symbol in correct_answer_num_symbols for symbol in recent_examples[-i][1])):
-                        perfect_ex_for_ans = recent_examples[-i][2]
-                        break
-            elif min_difference_at_twice:
-                for i in range(3, 0, -1):
-                    if all((symbol in correct_answer_num_symbols for symbol in recent_examples[-i][1])):
-                        perfect_ex_for_ans = recent_examples[-i][2]
-                        break
-            elif len(recent_examples[-1][2]) < len(recent_examples[-2][2]) and len(recent_examples[-2][2]) > len(recent_examples[-3][2]) and len(recent_examples[-2][2]) == 1:
-                if all((symbol in correct_answer_num_symbols for symbol in recent_examples[-2][1])):
-                    perfect_ex_for_ans = recent_examples[-2][2]
-            elif min_difference_at_once:
+        elif keysym in ('BackSpace', 'Delete'):
+            if min_difference:
                 perfect_ex_for_ans = recent_examples[-2][2]
         else:
             perfect_ex_for_ans = recent_examples[-1][2]
@@ -1266,20 +1261,20 @@ def key_calc(key):
         if str(ROUND_ANSWER_TO_MANUALLY).strip('-').isdigit():
             manual_round_abs = abs(ROUND_ANSWER_TO_MANUALLY)
             num_of_ending_symbols = (0 < manual_round_abs % 10 < 5 and manual_round_abs // 10 != 1) + (manual_round_abs % 10 == 1 and manual_round_abs != 11)
-            rounding_in_history = f'{f' ({manual_round_abs} знак{('ов', 'а', '')[num_of_ending_symbols]} {('перед', 'после')[ROUND_ANSWER_TO_MANUALLY > 0]} запятой)'}'
+            rounding_in_history = f' ({manual_round_abs} знак{('ов', 'а', '')[num_of_ending_symbols]} {('перед', 'после')[ROUND_ANSWER_TO_MANUALLY > 0]} запятой)'
         
         temporary_data_and_rounding = split_old_history_of_calculations[2]
         
         if perfect_ex_for_ans and (perfect_ex_for_ans != split_old_history_of_calculations[0] or (rounding_in_history not in temporary_data_and_rounding or '(' in temporary_data_and_rounding and rounding_in_history == '')):
             history_input = perfect_ex_for_ans
-            if all([symbol in correct_answer_num_symbols for symbol in history_res]) and history_res != history_input.replace(' ', ''):
+            if is_num(history_res, correct_answer_num_symbols) and history_res != history_input.replace(' ', ''):
                 if keysym in ('Return', 'grave'):
                     entry_box.delete(0, END)
                     entry_box.insert(END, str(history_res) if keysym == 'Return' else example_value)
                     example_value = entry_box.get()
                     cursor_index = entry_box.index('insert')
                 value_to_add = [example_value, result.get().strip('='), perfect_example, cursor_index]
-                value_to_add_plus = [example_value, re.sub(r' ?\[.*\]', '', result.get().strip('=')) if example_value else '', '', cursor_index, indexes_of_selection if indexes_of_selection else None, settings['round']]
+                value_to_add_plus = [example_value, clear_space_and_bracks_with_content(result.get().strip('=')) if example_value else '', '', cursor_index, indexes_of_selection if indexes_of_selection else None, settings['round']]
                 if add_to_recents(example_value):
                     recents['recent examples'].append(value_to_add)
                 if value_to_add_plus != recents['last examples'][-1]:
@@ -1315,13 +1310,13 @@ def key_calc(key):
                             pass
         elif keysym == 'Return':
             solve_res = solve_example(perfect_ex_for_ans)
-            if all([symbol in correct_answer_num_symbols for symbol in solve_res]):
+            if is_num(solve_res, correct_answer_num_symbols):
                 entry_box.delete(0, END)
                 entry_box.insert(END, solve_res)
                 example_value = entry_box.get()
                 cursor_index = entry_box.index('insert')
             value_to_add = [example_value, result.get().strip('='), perfect_example, cursor_index]
-            value_to_add_plus = [example_value, re.sub(r' ?\[.*\]', '', result.get().strip('=')) if example_value else '', '', cursor_index, indexes_of_selection if indexes_of_selection else None], settings['round']
+            value_to_add_plus = [example_value, clear_space_and_bracks_with_content(result.get().strip('=')) if example_value else '', '', cursor_index, indexes_of_selection if indexes_of_selection else None], settings['round']
             if add_to_recents(example_value):
                 recents['recent examples'].append(value_to_add)
             if value_to_add_plus != recents['last examples'][-1]:
@@ -1366,7 +1361,7 @@ def insert_values_in_inputs_without_date(new_entry_box_value, new_result_value, 
     if str(rounding_to).strip('-').isdigit():
         manual_round_abs = abs(rounding_to)
         num_of_ending_symbols = (0 < manual_round_abs % 10 < 5 and manual_round_abs // 10 != 1) + (manual_round_abs % 10 == 1 and manual_round_abs != 11)
-        rounding_in_history = f'{f' ({manual_round_abs} знак{('ов', 'а', '')[num_of_ending_symbols]} {('перед', 'после')[rounding_to > 0]} запятой)'}'
+        rounding_in_history = f' ({manual_round_abs} знак{('ов', 'а', '')[num_of_ending_symbols]} {('перед', 'после')[rounding_to > 0]} запятой)'
     
     result.insert(END, f'{symbol}{subbed_new_result_value}{' ' * bool(subbed_new_result_value)}[{date_time_rounding}{rounding_in_history}]')
     
@@ -1396,7 +1391,7 @@ def insert_values_in_inputs(new_entry_box_value, new_result_value, date_time_rou
     indexes_of_selection = None
     
     value_to_add = [example_value, result.get().strip('='), perfect_example, cursor_index]
-    value_to_add_plus = [example_value, re.sub(r' ?\[.*\]', '', result.get().strip('=')) if example_value else '', '', cursor_index, indexes_of_selection if indexes_of_selection else None, settings['round']]
+    value_to_add_plus = [example_value, clear_space_and_bracks_with_content(result.get().strip('=')) if example_value else '', '', cursor_index, indexes_of_selection if indexes_of_selection else None, settings['round']]
     if add_to_recents(example_value):
         recents['recent examples'].append(['', calculator_greeting, '', 0, '', 'по умолчанию'])
         recents['recent examples'].append(value_to_add)
@@ -1427,7 +1422,7 @@ def ctrl_y(self):
     else:
         i_last_example = 'future'
         solved_example = solve_example(last_example_value)
-        insert_values_in_inputs_without_date(last_example_value, solved_example, 'Последний введённый пример', '=' if all((symbol in correct_answer_num_symbols for symbol in solved_example)) else ' ' * bool(last_example_value), last_example_cursor, last_example_selection, ROUND_ANSWER_TO_MANUALLY)
+        insert_values_in_inputs_without_date(last_example_value, solved_example, 'Последний введённый пример', '=' if is_num(solved_example, correct_answer_num_symbols) else ' ' * bool(last_example_value), last_example_cursor, last_example_selection, ROUND_ANSWER_TO_MANUALLY)
     change_width_of_entry(entry_box.get(), entry_box, result)
     config_fg_and_insertbackground()
         
@@ -1500,7 +1495,7 @@ def ctrl_shift_y(self):
     else:
         i_history = 'future'
         solved_example = solve_example(last_example_value)
-        insert_values_in_inputs(last_example_value, solved_example, 'Последний введённый пример', '=' if all((symbol in correct_answer_num_symbols for symbol in solved_example)) else ' ' * bool(last_example_value))
+        insert_values_in_inputs(last_example_value, solved_example, 'Последний введённый пример', '=' if is_num(solved_example, correct_answer_num_symbols) else ' ' * bool(last_example_value))
     change_width_of_entry(entry_box.get(), entry_box, result)
     config_fg_and_insertbackground()
     
@@ -1526,12 +1521,11 @@ def move_down(key):
     
     
 def add_to_last_examples_if_selection_or_cursor_change():
-    value_to_add_plus = [example_value, re.sub(r' ?\[.*\]', '', result.get().strip('=')) if example_value else '', '', cursor_index, indexes_of_selection if indexes_of_selection else None, settings['round']]
+    value_to_add_plus = [example_value, clear_space_and_bracks_with_content(result.get().strip('=')) if example_value else '', '', cursor_index, indexes_of_selection if indexes_of_selection else None, settings['round']]
     if value_to_add_plus != recents['last examples'][-1]:
         recents['last examples'].append(value_to_add_plus)
     if len(recents['last examples']) > 500:
         recents['last examples'].pop(0)
-    
     
     
 def set_main_focus(event):
@@ -1545,7 +1539,7 @@ def set_main_focus(event):
         indexes_of_selection = None
         entry_box.icursor(END)
     entry_box.focus_set()
-    cursor_index = entry_box.index('insert')
+    cursor_index = entry_box.index('insert') 
     can_backspace = cursor_index != 0
     
     add_to_last_examples_if_selection_or_cursor_change()
@@ -1931,7 +1925,7 @@ def config_fg_and_insertbackground():
     result.config(fg=('#' + 'b0' * 3, '#' + '2f' * 3)[theme_is_light] if example_value not in ('ထ', '+ထ', '-ထ') else ('#909054', '#5f5f9b')[theme_is_light])
     if result.get() == calculator_greeting:
         result.config(fg=('#' + '70' * 3, '#' + '6f' * 3)[theme_is_light])
-    elif not all([symbol in correct_answer_num_symbols for symbol in result.get().replace('=', '')]) and example_value not in ('ထ', '+ထ', '-ထ'):
+    elif not is_num(result.get().replace('=', ''), correct_answer_num_symbols) and example_value not in ('ထ', '+ထ', '-ထ'):
        result.config(fg=('#' + 'a8' * 3, '#' + '37' * 3)[theme_is_light])
     change_selection_colors_to_normal(theme_is_light)
         

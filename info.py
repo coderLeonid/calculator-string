@@ -1,6 +1,7 @@
 import winreg
 import pyautogui
 import ctypes
+import re
 
 from decimal import *
 
@@ -37,6 +38,14 @@ max_denominator = 10000
 max_history_length, min_history_length = 1000, 100
 word_ends1 = ('е', 'я', 'й')
 word_ends2 = ('', 'а', 'ов')
+
+
+def clear_q_with_content(example):
+    return re.sub(r'q+(?:q|.*?#)?', '', example)
+
+
+def clear_space_and_bracks_with_content(example):
+    return re.sub(r' ?\[.*\]', '', example)
 
 
 def get_correct_ending(num, word_endings):
