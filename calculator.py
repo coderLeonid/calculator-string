@@ -299,7 +299,7 @@ def modify_info(example):
     if example in ('log()by()', 'ln()', 'lg()'):
         a += {'log()by()': 'log(число)by(основание)', 'ln()': 'логарифм по основанию e=2,718…', 'lg()': 'логарифм по основанию 10'}[example]
     if example in ('!', '||'):
-        a += {'!': 'факториал (n!=1·2·…·n)', '||': 'модуль (делает значения неотрицательными)'}[example]
+        a += {'!': 'факториал (n!=1·2·…·n)', '||': 'модуль (делает значения неотрицательными)', '()': 'скобки'}[example]
     if example in ('√', '3√', '4√'):
         a += {'√': 'квадратный корень', '3√': 'кубический корень', '4√': 'биквадратный корень'}[example]
     if example in ('mod', 'div'):
@@ -424,10 +424,12 @@ def solve_example(example=None):
         example_brackets = example_brackets[1:-1]
     while any([i in example_brackets for i in ('()', 'Uu', '<>')]):
         example_brackets = example_brackets.replace('()', '').replace('Uu', '').replace('<>', '')
-    if re.search(r'Uu|\(\)', example):
-        return f'Напиши в {('модули', 'скобки')['()' in example]} число или функцию'
     if re.fullmatch(r'(?:U|u|\(|\))+', example):
-        return 'В примере нет ни одного числа'
+        return '0'
+    if re.search(r'\(\)', example):
+        return f'В примере есть скобки без чисел внутри'
+    if re.search(r'Uu', example):
+        return 'В примере есть модули без чисел внутри'
     if not re.fullmatch(r'[\)u]*[U\(]*', example_brackets):
         return 'Что-то не так со скобками, модулем или логарифмом!'
     example = rescope_example(example)
@@ -965,13 +967,28 @@ def make_it_future():
     calculate_result()
     change_width_of_entry(entry_box.get(), entry_box, result)
     i_last_example = 'future'
+    
+    
+def get_difference(old, new):
+    if old:
+        for i in range(len(new)):
+            if old[:1] == new[:1]:
+                old = old[1:]
+                new = new[1:]
+            else:
+                break
+        for i in range(len(new) - 1, -1, -1):
+            if old[-1:] == new[i]:
+                old = old[:-1]
+            else:
+                break
+    return old
 
 
 def key_calc(key):
     global history_of_calculations, i_history, i_last_example, added_win, settings, example_value, cursor_index, can_backspace, indexes_of_selection
     global keyboard_layout_memory
     
-    pre_example_value = example_value
     bypass = bypass2 = False
         
     if i_last_example != 'future' and hasattr(key, 'keysym') and key.keysym not in ('Control_L', 'Control_R'):
@@ -1099,8 +1116,12 @@ def key_calc(key):
             elif keysym == 'E':
                 example_value = insert_in_example(example_value, '•10^' if symbol_that_is_left_from_cursor in '0123456789φπeထ)!' else '1•10^' if symbol_that_is_left_from_cursor in '^√' else '10^')
         elif keysym in ('period', 'comma'):
-            example_value = insert_in_example(example_value, '/' if symbol_that_is_left_from_cursor == 'π' else '•' if symbol_that_is_left_from_cursor in 'φe)!' else '')
-            example_value = insert_in_example(example_value, '.' if symbol_that_is_left_from_cursor.isdigit() else '0.' if symbol_that_is_left_from_cursor != '.' else '')
+            if symbol_that_is_left_from_cursor != '.':
+                example_value = insert_in_example(example_value, '/' if symbol_that_is_left_from_cursor == 'π' else '•' if symbol_that_is_left_from_cursor in 'φe)!' else '')
+                example_value = insert_in_example(example_value, '.' if symbol_that_is_left_from_cursor.isdigit() else '0.')
+            else:
+                example_value = delete_in_example(example_value, -1)
+                example_value = insert_in_example(example_value, '•0.')
         elif keysym in ('s', 'c', 't', 'k'):
             example_value = insert_in_example(example_value, f'{'•' if symbol_that_is_left_from_cursor in '0123456789φπeထ)!' else ''}{({'s': 'sin', 'c': 'cos', 't': 'tg', 'k': 'ctg'}[keysym])}')
             if symbol_that_is_right_from_cursor != '(':
@@ -1153,7 +1174,7 @@ def key_calc(key):
         elif keysym == 'j':
             example_value = insert_in_example(example_value, '^3')
         elif keysym in ('x', 'asterisk'):
-            if symbol_that_is_left_from_cursor == '•':
+            if symbol_that_is_left_from_cursor == '•' and keysym != 'asterisk':
                 example_value = delete_in_example(example_value, -1)
                 example_value = insert_in_example(example_value, '^')
             elif symbol_that_is_left_from_cursor not in '0123456789φπeထ)|!' and keysym != 'asterisk':
@@ -1175,10 +1196,10 @@ def key_calc(key):
         elif keysym in ('equal', 'plus'):
             example_value = insert_in_example(example_value, '+')
         elif keysym in ('slash', 'colon', 'semicolon'):
-            if symbol_that_is_left_from_cursor == '/':
+            if symbol_that_is_left_from_cursor == '/' and keysym == 'slash':
                 example_value = delete_in_example(example_value, -1)
                 example_value = insert_in_example(example_value, 'div')
-            elif symbol_that_is_left_from_cursor not in '0123456789φπeထ)|!' and keysym != 'slash':
+            elif symbol_that_is_left_from_cursor not in '0123456789φπeထ)|!' and keysym == 'semicolon':
                 if symbol_that_is_left_from_cursor not in '(' or example_value[cursor_index:cursor_index  + 1] not in ')':
                     example_value = insert_in_example(example_value, '(')
                     example_value = insert_in_example(example_value, ')', right=True)
@@ -1200,8 +1221,6 @@ def key_calc(key):
             example_value = insert_in_example(example_value, '#')
         elif keysym.isdigit():
             example_value = insert_in_example(example_value, f'{'/' if symbol_that_is_left_from_cursor == 'π' else '•' if symbol_that_is_left_from_cursor in 'φe)!' else ''}{keysym}')
-        elif keysym in ('grave', 'Return', 'Escape'):
-            pass
         elif keysym in ('Left', 'Right'):
             for i in range(4, 1, -1):
                 if (example_value[cursor_index:cursor_index + i], example_value[cursor_index - i:cursor_index])[keysym == 'Left'] in (united_symbols + united_symbols_with_scopes):
@@ -1218,34 +1237,20 @@ def key_calc(key):
             add_to_last_examples_if_selection_or_cursor_change()
     
     recent_examples = recents['recent examples']
-    len_difference = 3
-    difference = pre_example_value
-    if difference:
-        for i in range(len(example_value)):
-            if difference[:1] == example_value[i]:
-                difference = difference[1:]
-            else:
-                break
-        for i in range(len(example_value) - 1, -1, -1):
-            if difference[-1:] == example_value[i]:
-                difference = difference[:-1]
-            else:
-                break
+    difference = get_difference(old=recent_examples[-2][0], new=recent_examples[-1][0])
     
     last_is_not_less = len(recent_examples[-2][0]) >= len(recent_examples[-3][0]) or 'q' in recent_examples[-3][0] and 'q' not in recent_examples[-2][0]
-    num_is_part_of_deleted = re.search(r'[0-9φπe]', difference)
+    num_is_part_of_deleted = re.search(r'[0-9φπe]', difference)    
+        
     min_difference = last_is_not_less and num_is_part_of_deleted
-    print(list(map(lambda i: i[0], recent_examples)))
+    # print(list(map(lambda i: i[0], recent_examples)))
     
     if keysym in ('grave', 'Return', 'BackSpace', 'Delete', 'apostrophe', 'quotedbl') or min_difference:
         indexes_of_selection = None
         perfect_ex_for_ans = ''
-        if recent_examples[-1][2] and keysym in ('grave', 'Return'):
-            perfect_ex_for_ans = recent_examples[-1][2]
-        elif keysym in ('BackSpace', 'Delete'):
-            if min_difference:
-                perfect_ex_for_ans = recent_examples[-2][2]
-        else:
+        if min_difference and keysym in ('Delete', 'BackSpace'):
+            perfect_ex_for_ans = recent_examples[-2][2]
+        elif keysym in ('apostrophe', 'quotedbl', 'grave', 'Return'):
             perfect_ex_for_ans = recent_examples[-1][2]
         for i in range(2):
             for j in range(-3, 0):
