@@ -128,10 +128,10 @@ class C:
     @classmethod_with_cache
     def trig(cls, func, angle, are_degrees=True):
         angle = Decimal(angle)
-        if func == 'tg' and angle % 180 == 90:
-            return f'Тангенс углов {('π/2, 3π/2, 5π/2, ...', '90, 270, 450, ...')[are_degrees]} смысла не имеет! (±ထ)'
-        if func == 'ctg' and angle % 180 == 0:
-            return f'Котангенс углов {('0, π, 2π, ...', '0, 180, 360, ...')[are_degrees]} смысла не имеет! (±ထ)'
+        if func in ('tg', 'cos') and rond(angle, 1) % 180 == 90:
+            return f'Тангенс углов {('π/2, 3π/2, 5π/2, ...', '90, 270, 450, ...')[are_degrees]} смысла не имеет! (±ထ)' if func != 'cos' else 0
+        if func in ('sin', 'ctg') and rond(angle, 1) % 180 == 0:
+            return f'Котангенс углов {('0, π, 2π, ...', '0, 180, 360, ...')[are_degrees]} смысла не имеет! (±ထ)' if func != 'sin' else 0
         angle = rond(angle / 180 * C.pi, 1)
         if func == 'sin':
             return mp.sin(angle)

@@ -25,7 +25,7 @@ united_symbols_with_scopes = ('log(', 'sin(', 'cos(', 'ctg(', ')by(') + ('ln(', 
 united_symbols_without_scopes = ('sin', 'cos', 'tg', 'ctg', 'ln', 'lg')
 full_funcs_with_Uu = tuple((f'{i}{j}' for i in ('sin', 'cos', 'tg', 'ctg', 'lg', 'ln') for j in ('()', 'Uu'))) + tuple((f'log{i}by{j}' for i in ('()', 'Uu') for j in ('()', 'Uu')))
 
-special_keys = ('Up', 'Down', 'Left', 'Right', 'Control_L', 'Return', 'grave', 'Tab',
+special_keys = ('Up', 'Down', 'Left', 'Right', 'Control_L', 'Return', 'grave', 'Tab', 'changed text', 'Win_L'
                 'Control_R', 'Shift_L', 'Shift_R', 'Alt_L', 'Alt_R', 'Escape', 'Caps_Lock', 'apostrophe', 'quotedbl', 'braceleft', 'braceright')
 ghost_keys = ('Up', 'Down', 'Left', 'Right', 'Control_L', 'Control_R', 'Shift_L', 'Shift_R', 'Alt_L', 'Alt_R', 'Caps_Lock')
 rounds = [zeros(_) for _ in (400, 380, 360, 305)]
@@ -73,7 +73,7 @@ text_help_calc = ("Строка-калькулятор. Быстрый ввод 
                   " ⬥ [esc] закрывает окно в фокусе приложения.\n"
                   " ⬥ [`] (где [ё]) очищает поле ввода, ['] копирует ответ в буфер обмена, [\"] копирует пример\n"
                   " ⬥ [enter] заменяет пример в поле ввода на ответ на него\n"
-                  " ⬥ enter или [`], либо удаление подряд 3-4 символов также добавляет пример в историю\n"
+                  " ⬥ enter, либо первое удаление числа после ввода примера добавляет пример в историю\n"
                   " ⬥ ctrl+↑, ctrl+↓, ctrl+alt+↑, ctrl+alt+↓ прокручивают историю\n"
                   " ⬥ ctrl+shift+z перемещает на один пример в прошлое, ctrl+shift+y — в будущее\n"
                   " ⬥ ctrl+z перемещает на одно действие назад, ctrl+y — вперёд\n"

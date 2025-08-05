@@ -769,7 +769,7 @@ def create_added_win(win_type):
     added_win.protocol('WM_DELETE_WINDOW', lambda: manage_not_main_window_close())
     added_win.attributes('-alpha', '0.975')
     
-    text_entry = Text(added_win, bg=('#' + '10' * 3, '#' + 'e9' * 3)[settings['theme'] == 'light'], fg=entry_box.cget('fg'), font=(('Arial', 11, 'bold'), ('Arial', 16, 'bold'))[is_help])
+    text_entry = Text(added_win, bg=('#' + '10' * 3, '#' + 'e9' * 3)[settings['theme'] == 'light'], fg=entry_box.cget('fg'), font=(('Arial', 12, 'bold'), ('Arial', 16, 'bold'))[is_help])
     text_entry.place(x=2, y=2, width=WIDTH - 30, height=MAX_COORD - 104)
     
     scrollbar_history_calc = ttk.Scrollbar(added_win, orient='vertical', command=text_entry.yview)
@@ -988,7 +988,6 @@ def get_difference(old, new):
 def key_calc(key):
     global history_of_calculations, i_history, i_last_example, added_win, settings, example_value, cursor_index, can_backspace, indexes_of_selection
     global keyboard_layout_memory
-    
     bypass = bypass2 = False
         
     if i_last_example != 'future' and hasattr(key, 'keysym') and key.keysym not in ('Control_L', 'Control_R'):
@@ -1000,7 +999,7 @@ def key_calc(key):
     if type(key) is tuple:
         cursor_index = key[0]
         start, end = key
-        keysym = 'Up'
+        keysym = 'changed text'
         bypass = True
         entry_box.delete(0, END)
         entry_box.insert(END, example_value)
@@ -1012,7 +1011,7 @@ def key_calc(key):
     if not bypass:
         keysym = key.keysym if len(key.keysym) > 1 or key.keysym in 'MBTQIVPEU' else key.keysym.lower()
             
-        if keysym in ('Tab', 'Up', 'Down', 'Control_L', 'Control_R', 'Shift_L', 'Shift_R', 'Alt_L', 'Alt_R', 'Caps_Lock'):
+        if keysym in ('Tab', 'Up', 'Down', 'Control_L', 'Control_R', 'Shift_L', 'Shift_R', 'Alt_L', 'Alt_R', 'Caps_Lock', 'Win_L'):
             return
         
         if not bypass2:
@@ -1020,7 +1019,7 @@ def key_calc(key):
                 pass
             elif keysym in ('BackSpace', 'Left'):
                 cursor_index = entry_box.index('insert') + (1 if can_backspace else 0)
-            elif keysym not in special_keys and keysym != 'Delete' or keysym == 'Right':
+            elif keysym not in special_keys and keysym != 'Delete' or keysym in ('Right', 'apostrophe', 'quotedbl'):
                 cursor_index = entry_box.index('insert') - 1
             else:
                 cursor_index = entry_box.index('insert')
@@ -1068,6 +1067,8 @@ def key_calc(key):
                     break
             else:
                 delete_to_the(k=1)
+        elif keysym == 'grave':
+            example_value = ''
         elif keysym == 'v':
             example_value = insert_in_example(example_value, f'{find_the_most_useful_symbol_to_paste(example_value, symbol_that_is_left_from_cursor in '0123456789πφe.)!ထ')}')
             example_value = example_value[:max_character_amount]
@@ -1237,20 +1238,21 @@ def key_calc(key):
             add_to_last_examples_if_selection_or_cursor_change()
     
     recent_examples = recents['recent examples']
-    difference = get_difference(old=recent_examples[-2][0], new=recent_examples[-1][0])
+    peak = ''
+    for i in range(-2, -len(recent_examples), -1):
+        if len(recent_examples[-i][0]) >= len(recent_examples[-(i + 1)][0]) or 'q' in recent_examples[-(i + 1)][0] and 'q' not in recent_examples[-i][0]:
+            peak = recent_examples[-i][0]
+    difference1, difference2 = (get_difference(old=peak, new=recent_examples[-i][0]) for i in (1, 2))
     
-    last_is_not_less = len(recent_examples[-2][0]) >= len(recent_examples[-3][0]) or 'q' in recent_examples[-3][0] and 'q' not in recent_examples[-2][0]
-    num_is_part_of_deleted = re.search(r'[0-9φπe]', difference)    
-        
-    min_difference = last_is_not_less and num_is_part_of_deleted
+    num_is_part_of_deleted = re.search(r'[0-9φπe]', difference1) and not re.search(r'[0-9φπe]', difference2)
     # print(list(map(lambda i: i[0], recent_examples)))
     
-    if keysym in ('grave', 'Return', 'BackSpace', 'Delete', 'apostrophe', 'quotedbl') or min_difference:
+    if keysym in ('grave', 'Return', 'BackSpace', 'Delete', 'apostrophe', 'quotedbl') or num_is_part_of_deleted:
         indexes_of_selection = None
         perfect_ex_for_ans = ''
-        if min_difference and keysym in ('Delete', 'BackSpace'):
+        if num_is_part_of_deleted and keysym in ('Delete', 'BackSpace', 'grave', 'changed text'):
             perfect_ex_for_ans = recent_examples[-2][2]
-        elif keysym in ('apostrophe', 'quotedbl', 'grave', 'Return'):
+        elif keysym in ('apostrophe', 'quotedbl', 'Return'):
             perfect_ex_for_ans = recent_examples[-1][2]
         for i in range(2):
             for j in range(-3, 0):
@@ -1330,10 +1332,6 @@ def key_calc(key):
                 recents['last examples'].pop(0)
             if len(recents['recent examples']) > 20:
                 recents['recent examples'].pop(0)
-        if keysym == 'grave':
-            entry_box.delete(0, END)
-            cursor_index = 0
-            calculate_result()
     
     entry_box.icursor(cursor_index)
     if modify_info(example_value) is not None:
@@ -1353,7 +1351,7 @@ def key_calc(key):
         
 def real_key_calc(key):
     key_calc(key)
-    if hasattr(key, 'keysym') and key.keysym not in ('Escape', 'Tab', 'Up', 'Down', 'Control_L', 'Control_R', 'Shift_L', 'Shift_R', 'Alt_L', 'Alt_R', 'Caps_Lock', 'y', 'z', 'Y', 'Z'):
+    if hasattr(key, 'keysym') and key.keysym not in ('Escape', 'Tab', 'Up', 'Down', 'Control_L', 'Control_R', 'Shift_L', 'Shift_R', 'Alt_L', 'Alt_R', 'Caps_Lock', 'Win_L' 'y', 'z', 'Y', 'Z'):
         add_to_last_examples_if_selection_or_cursor_change()
 
 
@@ -1752,7 +1750,7 @@ def change_selection_colors_to_normal(theme_is_light):
     entry_box.config(insertbackground=('#e0e0e0', '#1f1f1f')[theme_is_light])
     result.config(insertbackground=entry_box.cget('insertbackground'))
     entry_box.config(selectforeground=entry_box.cget('fg'), selectbackground=('#' + '50' * 3, '#' + 'a7' * 3)[theme_is_light])
-    result.config(selectforeground=result.cget('fg'), selectbackground=entry_box.cget('selectbackground'))
+    result.config(selectforeground=entry_box.cget('fg'), selectbackground=entry_box.cget('selectbackground'))
     
     
 def change_selection_colors_to_invisible():
@@ -1928,10 +1926,11 @@ def config_fg_and_insertbackground():
     theme_is_light = settings['theme'] == 'light'
     entry_box.config(fg=('#' + 'd0' * 3, '#' + '0f' * 3)[theme_is_light] if example_value not in ('ထ', '+ထ', '-ထ') else ('#b0b054', '#3f3f8b')[theme_is_light])
     result.config(fg=('#' + 'b0' * 3, '#' + '2f' * 3)[theme_is_light] if example_value not in ('ထ', '+ထ', '-ထ') else ('#909054', '#5f5f9b')[theme_is_light])
-    if result.get() == calculator_greeting:
+    
+    if result.get() == calculator_greeting or modify_info(entry_box.get()) is not None:
         result.config(fg=('#' + '70' * 3, '#' + '6f' * 3)[theme_is_light])
     elif not is_num(result.get().replace('=', ''), correct_answer_num_symbols) and example_value not in ('ထ', '+ထ', '-ထ'):
-       result.config(fg=('#' + 'a8' * 3, '#' + '37' * 3)[theme_is_light])
+        result.config(fg=('#' + 'a8' * 3, '#' + '37' * 3)[theme_is_light])
     change_selection_colors_to_normal(theme_is_light)
         
 
