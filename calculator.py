@@ -294,6 +294,8 @@ def modify_info(example):
     a = '– '
     if not example:
         return calculator_greeting
+    if example == calculator_greeting.lower():
+        a += 'приветствие'
     if example in ('ထ', '+ထ', '-ထ'):
         a += {'ထ': 'Бесконечность', '+ထ': 'положительная Бесконечность', '-ထ': 'отрицательная Бесконечность'}[example]
     if example in ('log()by()', 'ln()', 'lg()'):
@@ -1724,11 +1726,12 @@ def paste_text(key):
         replaced_paste = re.sub(r' ', '#', replaced_paste)
         replaced_paste = re.sub(r'\s', '', replaced_paste)
         replaced_paste = re.sub(r'#', ' ', replaced_paste)
-        replaced_paste = re.sub(r' {2,}', r' ', replaced_paste.replace('÷', '/').replace(':', '/').replace('//', 'div').replace('%', 'mod'))
+        if not re.search(r'[а-яА-ЯЁё]', replaced_paste):
+            replaced_paste = re.sub(r' {2,}', r' ', replaced_paste.replace('÷', '/').replace(':', '/').replace('//', 'div').replace('%', 'mod'))
     
-    replaced_paste = (replaced_paste.replace('x', '•').replace('*', '•').replace('inf', 'ထ').replace('∞', 'ထ').replace('–', '-').replace('–', '-').replace('×', '•').replace(' ', ' '))
+    if not re.search(r'[а-яА-ЯЁё]', replaced_paste):
+        replaced_paste = replaced_paste.replace('x', '•').replace('*', '•').replace('inf', 'ထ').replace('∞', 'ထ').replace('–', '-').replace('–', '-').replace('×', '•').replace(' ', ' ')
     change_text(replaced_paste)
-    
     
 def change_text(pasted, start=None, end=None):
     global indexes_of_selection, cursor_index, can_backspace, example_value
