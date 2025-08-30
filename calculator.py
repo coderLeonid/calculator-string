@@ -1724,7 +1724,7 @@ def paste_text(key):
         replaced_paste = re.sub(r' ', '#', replaced_paste)
         replaced_paste = re.sub(r'\s', '', replaced_paste)
         replaced_paste = re.sub(r'#', ' ', replaced_paste)
-        replaced_paste = replaced_paste.replace(':', '/').replace('//', 'div').replace('%', 'mod')
+        replaced_paste = re.sub(r' {2,}', r' ', replaced_paste.replace('÷', '/').replace(':', '/').replace('//', 'div').replace('%', 'mod'))
     
     replaced_paste = (replaced_paste.replace('x', '•').replace('*', '•').replace('inf', 'ထ').replace('∞', 'ထ').replace('–', '-').replace('–', '-').replace('×', '•').replace(' ', ' '))
     change_text(replaced_paste)
