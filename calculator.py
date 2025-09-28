@@ -187,6 +187,7 @@ def find_the_most_useful_symbol_to_paste(example, last_is_digit, first=True):
 
 def create_perfect_example(non_perfect_example):    
     non_perfect_example = rescope_example(non_perfect_example)
+    
     if not non_perfect_example:
         return
     non_perfect_example = non_perfect_example.replace(' ', '')
@@ -200,7 +201,7 @@ def create_perfect_example(non_perfect_example):
     
     while re.search(pattern_checking_on_empty_scopes, non_perfect_example):
         non_perfect_example = re.sub(pattern_checking_on_empty_scopes, '', non_perfect_example)
-    
+           
     non_perfect_example = f'({non_perfect_example})'
     
     split_non_perfect_example = []
@@ -303,7 +304,9 @@ def modify_info(example):
     if example in ('!', '||'):
         a += {'!': 'факториал (n!=1·2·…·n)', '||': 'модуль (делает значения неотрицательными)', '()': 'скобки'}[example]
     if example in ('√', '3√', '4√'):
-        a += {'√': 'квадратный корень', '3√': 'кубический корень', '4√': 'биквадратный корень'}[example]
+        a += {'√': 'квадратный корень', '3√': 'кубический корень', '4√': 'биквадратный корень', }[example]
+    if example[:-2] in ('√', '3√', '4√') and example[-2:] == '()':
+        a += {'√': 'квадратный корень', '3√': 'кубический корень', '4√': 'биквадратный корень', }[example[:-2]]
     if example in ('mod', 'div'):
         a += {'mod': 'остаток от деления', 'div': 'целочисленное деление'}[example]
     if example in ('sin()', 'cos()', 'tg()', 'ctg()'):
@@ -392,8 +395,8 @@ def solve_example(example=None):
     pre_example = f'({example})'
     for i in range(len(pre_example) - 2):
         if pre_example[i + 1] == '|':
-            pre_example = pre_example[:i + 1] + 'Uu'[pre_example[i] in '0123456789!)u' or bool(re.match(r'[+•:^!\)]|mod|div', pre_example[i + 2:]))] + pre_example[i + 2:]
-            
+            pre_example = pre_example[:i + 1] + 'Uu'[pre_example[i] in '0123456789!)ueπφ' or bool(re.match(r'[+•:^!\)]|mod|div', pre_example[i + 2:]))] + pre_example[i + 2:]
+      
     example = pre_example[1:-1]
     
     while re.search(pattern_checking_on_empty_scopes, example):
@@ -409,9 +412,10 @@ def solve_example(example=None):
     example = f'({example})'.replace('-)', ')')[1:-1]
     example = re.sub(r'(?:(?<=mod|div|sin|cos|ctg|log)|(?<=[+\-•/^(])|(?<=ln|lg|by)),', r'0,', example)
     example = re.sub(r'(?:[\+\-•:^,]|mod|div)(?=\))', r'', f'({example})')
+
     for i in range(len(example) - 2):
         if example[i + 1] == '|':
-            example = example[:i + 1] + 'Uu'[example[i] in '0123456789!)u' or bool(re.match(r'[+•:^!\)]|mod|div', example[i + 2:]))] + example[i + 2:]
+            example = example[:i + 1] + 'Uu'[example[i] in '0123456789!)ueπφ' or bool(re.match(r'[+•:^!\)]|mod|div', example[i + 2:]))] + example[i + 2:]
     those_symbols_cannot_be_near = re.findall(r'(?:(?:[+\-•:^,]|mod|div)(?:[+•:^,]|mod|div)|,-)', example)
     if those_symbols_cannot_be_near:
         those_symbols_cannot_be_near[0] = those_symbols_cannot_be_near[0].replace(',', '.').replace(':', '/')
@@ -424,6 +428,7 @@ def solve_example(example=None):
         return 'Рядом с константой не может быть модуля!'
     while example_brackets[:1] == '(' and example_brackets[-1:] == ')':
         example_brackets = example_brackets[1:-1]
+    
     while any([i in example_brackets for i in ('()', 'Uu', '<>')]):
         example_brackets = example_brackets.replace('()', '').replace('Uu', '').replace('<>', '')
     if re.fullmatch(r'(?:U|u|\(|\))+', example):
@@ -434,6 +439,7 @@ def solve_example(example=None):
         return 'В примере есть модули без чисел внутри'
     if not re.fullmatch(r'[\)u]*[U\(]*', example_brackets):
         return 'Что-то не так со скобками, модулем или логарифмом!'
+
     example = rescope_example(example)
     if not example:
         return 'Что-то не так со скобками, модулем или логарифмом!'
@@ -460,6 +466,7 @@ def solve_example(example=None):
     if re.search(r'[0-9,\.](?:sin|cos|tg|ctg|lg|ln|log)', saved_example):
         return "В примере перед одной из функций стоит не тот символ! (возможно перед этой функцией нужно поставить '•')"
     example = example.replace('mod', '%').replace('div', '@')
+
     if 'ထ' in example:
         return 'К сожалению, строка не поддерживает бесконечности'
     bad_symbols = re.findall(r'[^0-9+\-•:^,@%!()Uu]', example)
@@ -487,7 +494,8 @@ def solve_example(example=None):
     
     for i in range(len(example) - 2):
         if example[i + 1] == '|':
-            example = example[:i + 1] + 'Uu'[example[i] in '0123456789!)u' or bool(re.match(r'[+•:^!\)]|mod|div', example[i + 2:]))] + example[i + 2:]
+            example = example[:i + 1] + 'Uu'[example[i] in '0123456789!)ueπφ' or bool(re.match(r'[+•:^!\)]|mod|div', example[i + 2:]))] + example[i + 2:]
+            
     example = rescope_example(example)
     if not example:
         return 'Что-то не так со скобками, модулем или логарифмом!'
@@ -950,7 +958,7 @@ def clean_from_scopes_with_emptyness(value):
     value = f'({value})'
     for i in range(len(value) - 2):
         if value[i + 1] == '|':
-            value = value[:i + 1] + 'Uu'[value[i] in '0123456789!)u' or bool(re.match(r'[+•:^!\)]|mod|div', value[i + 2:]))] + value[i + 2:]
+            value = value[:i + 1] + 'Uu'[value[i] in '0123456789!)ueπφ' or bool(re.match(r'[+•:^!\)]|mod|div', value[i + 2:]))] + value[i + 2:]
             
     value = value[1:-1]
     
@@ -1247,7 +1255,6 @@ def key_calc(key):
     difference1, difference2 = (get_difference(old=peak, new=recent_examples[-i][0]) for i in (1, 2))
     
     num_is_part_of_deleted = re.search(r'[0-9φπe]', difference1) and not re.search(r'[0-9φπe]', difference2)
-    # print(list(map(lambda i: i[0], recent_examples)))
     
     if keysym in ('grave', 'Return', 'BackSpace', 'Delete', 'apostrophe', 'quotedbl') or num_is_part_of_deleted:
         indexes_of_selection = None
@@ -1752,7 +1759,7 @@ def change_text(pasted, start=None, end=None):
 def change_selection_colors_to_normal(theme_is_light):
     entry_box.config(insertbackground=('#e0e0e0', '#1f1f1f')[theme_is_light])
     result.config(insertbackground=entry_box.cget('insertbackground'))
-    entry_box.config(selectforeground=entry_box.cget('fg'), selectbackground=('#' + '50' * 3, '#' + 'a7' * 3)[theme_is_light])
+    entry_box.config(selectforeground=entry_box.cget('fg'), selectbackground=('#' + '50' * 3, '#' + 'ab' * 3)[theme_is_light])
     result.config(selectforeground=entry_box.cget('fg'), selectbackground=entry_box.cget('selectbackground'))
     
     
@@ -1868,14 +1875,14 @@ main_win.bind('<Control-Down>', lambda key: change_size_of_everything(scale=0, c
 def on_enter(event):
     global keyboard_layout_memory
     keyboard_layout_memory = ('en', 'ru')[is_russian_layout()]
-    entry_box.config(bg=('#' + '27' * 3, '#' + 'd2' * 3)[settings['theme'] == 'light'])
+    entry_box.config(bg=('#' + '27' * 3, '#' + 'e2' * 3)[settings['theme'] == 'light'])
     result.config(bg=entry_box.cget('bg'))
     change_width_of_entry(entry_box.get(), entry_box, result)
     
     
 def on_leave(event):
     if main_win.focus_get() not in (main_win, entry_box, result):
-        entry_box.config(bg=('#' + '1f' * 3, '#' + 'dd' * 3)[settings['theme'] == 'light'])
+        entry_box.config(bg=('#' + '1f' * 3, '#' + 'ea' * 3)[settings['theme'] == 'light'])
         result.config(bg=entry_box.cget('bg'))
     
     
@@ -1883,9 +1890,9 @@ def focus_in(event):
     if is_russian_layout():
         hwnd = user32.GetForegroundWindow()
         user32.PostMessageW(hwnd, 0x50, 0, user32.LoadKeyboardLayoutW("00000409", 0x1))
-    main_win['bg'] = ('#' + '4f' * 3, '#' + 'b0' * 3)[settings['theme'] == 'light']
+    main_win['bg'] = ('#' + '4f' * 3, '#' + 'a0' * 3)[settings['theme'] == 'light']
     
-    entry_box.config(bg=('#' + '27' * 3, '#' + 'd2' * 3)[settings['theme'] == 'light'])
+    entry_box.config(bg=('#' + '27' * 3, '#' + 'e2' * 3)[settings['theme'] == 'light'])
     result.config(bg=entry_box.cget('bg'))
     config_fg_and_insertbackground()
     change_width_of_entry(entry_box.get(), entry_box, result)
@@ -1896,7 +1903,7 @@ def focus_out(event):
     if not is_russian_layout() and keyboard_layout_memory == 'ru':
         hwnd = user32.GetForegroundWindow()
         user32.PostMessageW(hwnd, 0x50, 0, user32.LoadKeyboardLayoutW("00000419", 0x1))
-    entry_box.config(bg=('#' + '1f' * 3, '#' + 'dd' * 3)[settings['theme'] == 'light'])   
+    entry_box.config(bg=('#' + '1f' * 3, '#' + 'ea' * 3)[settings['theme'] == 'light'])   
     result.config(bg=entry_box.cget('bg'))
     change_width_of_entry(entry_box.get(), entry_box, result)
 
