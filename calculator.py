@@ -790,7 +790,7 @@ def create_added_win(win_type):
     
     text_entry.bind('<Key>', disable_editing_added_win_text)
     
-    added_win['bg'] = ('#' + '20' * 3, '#' + 'd9' * 3)[settings['theme'] == 'light']
+    added_win['bg'] = ('#' + '20' * 3, '#' + 'e8' * 3)[settings['theme'] == 'light']
     
     added_win.bind('<Control-Shift-Up>', lambda key: None)  # не удалять! поддерживает автономию перед <Control-Up>
     added_win.bind('<Control-Shift-Down>', lambda key: None)  # не удалять! поддерживает автономию перед <Control-Down>
