@@ -899,10 +899,10 @@ def check_theme_change():
     current = is_dark_theme()
     if current != last_theme:
         last_theme = current
-        settings['theme'] = ('dark', 'light')[last_theme]
-        set_focus_from_not_my_application()
-        pyautogui.hotkey('ctrl', 't')
-        pyautogui.hotkey('ctrl', 'space')
+        if (settings['theme'] == 'dark') != current:
+            set_focus_from_not_my_application()
+            change_theme(None)
+            pyautogui.hotkey('ctrl', 'space')
     main_win.after(200, check_theme_change)  # проверять каждую секунду
 last_theme = is_dark_theme()
 check_theme_change()
