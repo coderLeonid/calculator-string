@@ -1749,9 +1749,11 @@ def paste_text(key):
         replaced_paste = re.sub(r'#', ' ', replaced_paste)
         if not re.search(r'[а-яА-ЯЁё]', replaced_paste):
             replaced_paste = re.sub(r' {2,}', r' ', replaced_paste.replace('÷', '/').replace(':', '/').replace('//', 'div').replace('%', 'mod'))
+        replaced_paste = re.sub(r'(\d)√', r'\1•√', replaced_paste)
     
     if not re.search(r'[а-яА-ЯЁё]', replaced_paste):
         replaced_paste = replaced_paste.replace('x', '•').replace('*', '•').replace('inf', 'ထ').replace('∞', 'ထ').replace('–', '-').replace('–', '-').replace('×', '•').replace(' ', ' ')
+    
     change_text(replaced_paste)
     
 def change_text(pasted, start=None, end=None):
@@ -1878,6 +1880,8 @@ main_win.bind("<B1-Motion>", move_main_win)
 main_win.bind('<Control-Shift-Up>', move_up)
 main_win.bind('<Control-Shift-Down>', move_down)
 
+main_win.bind('<Control-Key>', lambda key: None)  # не удалять! поддерживает автономию перед <Key>
+main_win.bind('<Alt-Key>', lambda key: None)  # не удалять! поддерживает автономию перед <Key>
 main_win.bind('<Key>', real_key_calc)
 
 main_win.bind('<Control-equal>', lambda key: change_size_of_everything(scale=min(settings['scale'] + 1, 5), scale_was_zero=HEIGHT <= screen_width // 180))
