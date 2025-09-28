@@ -894,6 +894,20 @@ change_size_of_everything(scale=settings['scale'])
 main_win.geometry(f'{WIDTH}x{HEIGHT}+{X_COORD}+{settings['y']}')
 
 
+def check_theme_change():
+    global last_theme
+    current = is_dark_theme()
+    if current != last_theme:
+        last_theme = current
+        settings['theme'] = ('dark', 'light')[last_theme]
+        set_focus_from_not_my_application()
+        pyautogui.hotkey('ctrl', 't')
+        pyautogui.hotkey('ctrl', 'space')
+    main_win.after(200, check_theme_change)  # проверять каждую секунду
+last_theme = is_dark_theme()
+check_theme_change()
+
+
 def set_focus_from_not_my_application():
     if not main_win.focus_get():
         change_size_of_everything(scale=settings['scale'], scale_was_zero=True, change_result=False)
