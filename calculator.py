@@ -1238,14 +1238,14 @@ def key_calc(key):
         elif keysym in ('parenleft', 'bracketleft'):
             example_value = insert_in_example(example_value, f'{'•' if symbol_that_is_left_from_cursor in '0123456789φπeထ)!' else ''}(')
         elif keysym == 'o':
-            example_value = insert_in_example(example_value, f'{'•' if symbol_that_is_left_from_cursor in '0123456789φπeထ)!' else ''}(')
+            example_value = insert_in_example(example_value, f'{'•' if symbol_that_is_left_from_cursor in '0123456789φπeထ)' else '/' if symbol_that_is_left_from_cursor == '!' else ''}(')
             example_value = insert_in_example(example_value, ')', right=True)
         elif keysym in ('parenright', 'bracketright'):
             example_value = insert_in_example(example_value, ')')
         elif keysym == 'numbersign':
             example_value = insert_in_example(example_value, '#')
         elif keysym.isdigit():
-            example_value = insert_in_example(example_value, f'{'/' if symbol_that_is_left_from_cursor == 'π' else '•' if symbol_that_is_left_from_cursor in 'φe)!' else ''}{keysym}')
+            example_value = insert_in_example(example_value, f'{'/' if symbol_that_is_left_from_cursor in 'π' else '•' if symbol_that_is_left_from_cursor in 'φe)!' else ''}{keysym}')
         elif keysym in ('Left', 'Right'):
             for i in range(4, 1, -1):
                 if (example_value[cursor_index:cursor_index + i], example_value[cursor_index - i:cursor_index])[keysym == 'Left'] in (united_symbols + united_symbols_with_scopes):
