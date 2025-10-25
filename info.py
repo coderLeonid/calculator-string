@@ -5,7 +5,7 @@ import re
 
 from decimal import *
 
-FILES = 'data/files/'
+FILES = 'data'
 DAY = 60 * 60 * 24
 
 getcontext().prec = 1402

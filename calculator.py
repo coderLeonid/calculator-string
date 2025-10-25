@@ -769,7 +769,7 @@ def create_added_win(win_type):
     except NameError:
         pass
     added_win = Toplevel()
-    added_win.iconbitmap(f'data/icons/{('history', 'help')[is_help]}.ico')
+    added_win.iconbitmap(f'icons/{('history', 'help')[is_help]}.ico')
     added_win.title(('история', 'инструкция')[is_help])
     
     added_win.geometry(f'{WIDTH - 10}x{MAX_COORD - 100}+{X_COORD}+0')
