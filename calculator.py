@@ -17,7 +17,7 @@ from info import *
 
 user32 = ctypes.WinDLL("user32", use_last_error=True)
 
-calculator_greeting = 'нажми [?] или ctrl+/, чтобы узнать, как использовать калькулятор'
+calculator_greeting = 'нажми [?] или ctrl+[/], чтобы узнать, как использовать калькулятор'
 i_last_example = i_history = 'future'
 has_left_main_win_flag = True
 
@@ -100,7 +100,7 @@ with open(f'{FILES}/recents.json', 'r') as recents_file:
     except json.decoder.JSONDecodeError:
         recents = {'closing time': [0 for _ in range(3)], 'example before closing': '', 'cursor before closing': 0, 'cursor before moving calc': 0,
                    'recent examples': [['', '', '', ''] for _ in range(20)], 'last examples': [['', '', '', '', '', ''],],
-                   'low': MAX_COORD, 'mid': MAX_COORD // 2, 'top': 0, 'mouse coords': {'x': 0, 'y': 0}}
+                   'low': MAX_COORD, 'mid': MAX_COORD // 2, 'top': 0, 'mouse coords': {'x': 0, 'y': 0}, 'win theme alike calc': True}
         rewrite_json('recents')
 with open(f'{FILES}/settings.json', 'r') as settings_file:
     try:
@@ -379,15 +379,29 @@ def solve_example(example=None):
             settings['history length'] = 4 * num
             return f'С следующего открытия калькулятора: длина истории вычислений — {num} примеров.'
         return f'Необходимо задать количество примеров в истории не более {max_history_length}, но и не менее {min_history_length}!'
-    elif re.fullmatch(r'-?\w+#', example):
-        if not re.fullmatch(r'-?[0-9\.]+#', example):
-            return 'Координата должна быть числом!'
-        y_coord = int(float(example[:-1]))
+    elif re.fullmatch(r'-?[^#]*#', example.replace(' ', '')):
+        unit_of_distance = False
+        if example.replace(' ', '') == '-#':
+            example = '-0#'
+            unit_of_distance = True
+        if re.fullmatch(r'-?1-#', example.replace(' ', '')):
+            y_coord = (-1, 1)[example.replace(' ', '') == '1-#'] * MAX_COORD
+            unit_of_distance = True
+        else:
+            if not re.fullmatch(r'-?(?:[0-9]+(?:\.[0-9]+)?)#', example):
+                example = solve_example(example[:-1]).replace(' ', '') + '#'
+            if not re.fullmatch(r'-?(?:[0-9]+(?:\.[0-9]+)?)#', example):
+                return 'Координата должна быть числом!'
+            y_coord = float(example[:-1])
+            if -1 < y_coord < 1:
+                y_coord *= MAX_COORD
+                unit_of_distance = True
+            y_coord = int(str(Decimal(y_coord).quantize(Decimal('.0'), ROUND_HALF_UP))[:-2])
         if abs(y_coord) > MAX_COORD:
-            return f'Либо сделай координату в диапазоне от -{MAX_COORD} до {MAX_COORD}, либо нажми на "Ctrl" и стрелку "Вверх" или "Вниз" на клавиатуре!'
+            return f'Либо сделай координату в диапазоне от -{MAX_COORD} до {MAX_COORD}, либо нажми на "Ctrl+Shift" и стрелку "Вверх" или "Вниз" на клавиатуре!'
         setting_y(y_coord + (0, MAX_COORD)[example[0] == '-'])
         main_win.geometry(f'{WIDTH}x{HEIGHT}+{X_COORD}+{settings['y']}')
-        return 'место калькулятора'
+        return 'место калькулятора в ' + ('пикселях', 'расстояниях от края калькулятора вверху до его края внизу')[unit_of_distance]
     if '$' in example:
         return 'Почему символ "$" есть в примере?'
     pi_replaced, e_replaced, fi_replaced = f'({C.pi}+0)', f'({C.e}+0)', f'({C.fi}+0)'
@@ -834,7 +848,7 @@ def finish_to_help_win():
     text_entry.delete(1.0, END)
     for i in range(len(splitted_text_entry)):
         val = splitted_text_entry[i] + '\n'
-        tag_rows = (12, 20, 11, 8, 9)
+        tag_rows = (12, 20, 11, 9, 9)
         a, b, c, d, e = (sum(tag_rows[:i + 1]) for i in range(5))
         size = (14, 16)[i in (2, a, b, c, d, e)]
         color = (black, purple, green, gray, red, red)[(i >= a) + (i >= b) + (i >= c) + (i >= d) + (i >= e)]
@@ -1009,9 +1023,15 @@ def get_difference(old, new):
     return old
 
 
+def insertion_if_division_of_one(left_symbol, arg, example):
+    if re.fullmatch(r'(?:[^0-9\.]|^)1', example_value[cursor_index - 2:cursor_index]):
+        return insert_in_example(example_value, f'/{arg}')
+    else:
+        return insert_in_example(example_value, f'{'•' if left_symbol in '0123456789φπeထ)!' else ''}{arg}')
+
+
 def key_calc(key):
-    global history_of_calculations, i_history, i_last_example, added_win, settings, example_value, cursor_index, can_backspace, indexes_of_selection
-    global keyboard_layout_memory
+    global history_of_calculations, i_history, i_last_example, added_win, settings, example_value, cursor_index, can_backspace, indexes_of_selection, keyboard_layout_memory
     bypass = bypass2 = False
         
     if i_last_example != 'future' and hasattr(key, 'keysym') and key.keysym not in ('Control_L', 'Control_R'):
@@ -1148,24 +1168,24 @@ def key_calc(key):
                 example_value = delete_in_example(example_value, -1)
                 example_value = insert_in_example(example_value, '•0.')
         elif keysym in ('s', 'c', 't', 'k'):
-            example_value = insert_in_example(example_value, f'{'•' if symbol_that_is_left_from_cursor in '0123456789φπeထ)!' else ''}{({'s': 'sin', 'c': 'cos', 't': 'tg', 'k': 'ctg'}[keysym])}')
+            example_value = insertion_if_division_of_one(symbol_that_is_left_from_cursor, {'s': 'sin', 'c': 'cos', 't': 'tg', 'k': 'ctg'}[keysym], example_value)
             if symbol_that_is_right_from_cursor != '(':
                 example_value = insert_in_example(example_value, '(')
                 example_value = insert_in_example(example_value, ')', right=True)
         elif keysym in ('d', 'm'):
             example_value = insert_in_example(example_value, f'{({'m': 'mod', 'd': 'div'}[keysym])}')
         elif keysym == 'l':
-            example_value = insert_in_example(example_value, f'{'•' if symbol_that_is_left_from_cursor in '0123456789φπeထ)!' else ''}log(')
+            example_value = insertion_if_division_of_one(symbol_that_is_left_from_cursor, 'log(', example_value)
             example_value = insert_in_example(example_value, ')by' if symbol_that_is_right_from_cursor == '(' else ')by()', right=True)
         elif keysym in ('n', 'g'):
-            example_value = insert_in_example(example_value, f'{'•' if symbol_that_is_left_from_cursor in '0123456789φπeထ)!' else ''}{({'n': 'ln', 'g': 'lg'}[keysym])}')
+            example_value = insertion_if_division_of_one(symbol_that_is_left_from_cursor, {'n': 'ln', 'g': 'lg'}[keysym], example_value)
             if symbol_that_is_right_from_cursor != '(':
                 example_value = insert_in_example(example_value, '(')
                 example_value = insert_in_example(example_value, ')', right=True)
         elif keysym == 'p':
-            example_value = insert_in_example(example_value, f'{'•' if symbol_that_is_left_from_cursor in '0123456789φπeထ)!' else ''}π')
+            example_value = insertion_if_division_of_one(symbol_that_is_left_from_cursor, 'π', example_value)
         elif keysym == 'r':
-            example_value = insert_in_example(example_value, f'{'•' if symbol_that_is_left_from_cursor in '0123456789φπeထ)!' else ''}√')
+            example_value = insertion_if_division_of_one(symbol_that_is_left_from_cursor, '√', example_value)
         elif keysym in ('bar', 'backslash'):
             example_value = insert_in_example(example_value, '|')
         elif keysym == 'a':
@@ -1177,7 +1197,7 @@ def key_calc(key):
                 if example_value[cursor_index - 4:cursor_index + 3] == 'log()by' or example_value[cursor_index - 3:cursor_index + 1] == 'by()':
                     change_scopes_to_modules()
                 else:
-                    example_value = insert_in_example(example_value, f'{'•' if symbol_that_is_left_from_cursor in '0123456789φπeထ)!' else ''}|')
+                    example_value = insertion_if_division_of_one(symbol_that_is_left_from_cursor, '|', example_value)
                     example_value = insert_in_example(example_value, '|', right=True)
         elif keysym in ('exclam', 'i'):
             example_value = insert_in_example(example_value, '!')
@@ -1232,13 +1252,13 @@ def key_calc(key):
             else:
                 example_value = insert_in_example(example_value, '/')
         elif keysym == 'e':
-            example_value = insert_in_example(example_value, f'{'•' if symbol_that_is_left_from_cursor in '0123456789φπeထ)!' else ''}e')
+            example_value = insertion_if_division_of_one(symbol_that_is_left_from_cursor, 'e', example_value)
         elif keysym == 'f':
-            example_value = insert_in_example(example_value, f'{'•' if symbol_that_is_left_from_cursor in '0123456789φπeထ)!' else ''}φ')
+            example_value = insertion_if_division_of_one(symbol_that_is_left_from_cursor, 'φ', example_value)
         elif keysym in ('parenleft', 'bracketleft'):
-            example_value = insert_in_example(example_value, f'{'•' if symbol_that_is_left_from_cursor in '0123456789φπeထ)!' else ''}(')
+            example_value = insertion_if_division_of_one(symbol_that_is_left_from_cursor, '(', example_value)
         elif keysym == 'o':
-            example_value = insert_in_example(example_value, f'{'•' if symbol_that_is_left_from_cursor in '0123456789φπeထ)' else '/' if symbol_that_is_left_from_cursor == '!' else ''}(')
+            example_value = insert_in_example(example_value, f'{'/' if re.search(r'(?:(?:[^0-9\.]|^)1|!)$', example_value[:cursor_index]) else '•' if symbol_that_is_left_from_cursor in '0123456789φπeထ)' else ''}(')
             example_value = insert_in_example(example_value, ')', right=True)
         elif keysym in ('parenright', 'bracketright'):
             example_value = insert_in_example(example_value, ')')
@@ -1376,6 +1396,68 @@ def real_key_calc(key):
     key_calc(key)
     if hasattr(key, 'keysym') and key.keysym not in ('Escape', 'Tab', 'Up', 'Down', 'Control_L', 'Control_R', 'Shift_L', 'Shift_R', 'Alt_L', 'Alt_R', 'Caps_Lock', 'Win_L' 'y', 'z', 'Y', 'Z'):
         add_to_last_examples_if_selection_or_cursor_change()
+        
+        
+def save_example_to_history(key):
+    global history_of_calculations, i_history, i_last_example, added_win, settings, example_value, cursor_index, can_backspace, indexes_of_selection, keyboard_layout_memory
+    indexes_of_selection = None
+    perfect_ex_for_ans = recents['recent examples'][-1][2]
+    for i in range(2):
+        for j in range(-3, 0):
+            if perfect_ex_for_ans[j:] in ending_symbols:
+                perfect_ex_for_ans = perfect_ex_for_ans[:j]
+                break
+
+    perfect_ex_for_ans = clean_from_scopes_with_emptyness(perfect_ex_for_ans)
+
+    split_old_history_of_calculations = history_of_calculations.split('\n')
+    history_res = solve_example(perfect_ex_for_ans)
+    rounding_in_history = ''
+    if str(ROUND_ANSWER_TO_MANUALLY).strip('-').isdigit():
+        manual_round_abs = abs(ROUND_ANSWER_TO_MANUALLY)
+        num_of_ending_symbols = (0 < manual_round_abs % 10 < 5 and manual_round_abs // 10 != 1) + (manual_round_abs % 10 == 1 and manual_round_abs != 11)
+        rounding_in_history = f' ({manual_round_abs} знак{('ов', 'а', '')[num_of_ending_symbols]} {('перед', 'после')[ROUND_ANSWER_TO_MANUALLY > 0]} запятой)'
+
+    temporary_data_and_rounding = split_old_history_of_calculations[2]
+
+    if perfect_ex_for_ans and (perfect_ex_for_ans != split_old_history_of_calculations[0] or (rounding_in_history not in temporary_data_and_rounding or '(' in temporary_data_and_rounding and rounding_in_history == '')):
+        history_input = perfect_ex_for_ans
+        if is_num(history_res, correct_answer_num_symbols) and history_res != history_input.replace(' ', ''):
+            value_to_add = [example_value, result.get().strip('='), perfect_example, cursor_index]
+            value_to_add_plus = [example_value, clear_space_and_bracks_with_content(result.get().strip('=')) if example_value else '', '', cursor_index, indexes_of_selection if indexes_of_selection else None, settings['round']]
+            if add_to_recents(example_value):
+                recents['recent examples'].append(value_to_add)
+            if value_to_add_plus != recents['last examples'][-1]:
+                recents['last examples'].append(value_to_add_plus)
+            if len(recents['last examples']) > 500:
+                recents['last examples'].pop(0)
+            if len(recents['recent examples']) > 20:
+                recents['recent examples'].pop(0)
+            
+            if history_input and added_win.title() in ('история', invisible_win_title):
+                i_last_example = 'future'
+                i_history = 'future'
+                date_time = str(datetime.datetime.today())[:-7].replace('-', '.')
+                date_time_rounding = f'{date_time}{rounding_in_history}'
+                new_history = f'{perfect_example}\n{history_res}\n{date_time_rounding}\n\n{history_of_calculations}'
+                split0_history_of_calculations = new_history.split('\n')
+                
+                too_much_history_data = len(split0_history_of_calculations) > settings['history length']
+                history_of_calculations = '\n'.join(split0_history_of_calculations if not too_much_history_data else split0_history_of_calculations[:settings['history length']])
+                if added_win.title() != invisible_win_title:
+                    try:
+                        theme_is_light = settings['theme'] == 'light'
+                        color1 = ('#' + 'b0' * 3, '#' + '2f' * 3)[theme_is_light]
+                        color2 = ('#' + '90' * 3, '#' + '5f' * 3)[theme_is_light]
+                        text_entry.insert(0.0, date_time_rounding + '\n' + '\n', f'history_{color2}')
+                        text_entry.insert(0.0, history_res + '\n', f'history_{color1}')
+                        text_entry.insert(0.0, perfect_example + '\n', f'history_{color1}')
+                        if too_much_history_data:
+                            text_entry.delete(1.0, END)
+                            tags = (None, f'history_{color1}', f'history_{color1}', f'history_{color2}')
+                            [text_entry.insert(END, val + '\n', tags[(i + 1) % 4]) for i, val in enumerate(history_of_calculations.split('\n'))]
+                    except NameError:
+                        pass
 
 
 def insert_values_in_inputs_without_date(new_entry_box_value, new_result_value, date_time_rounding, symbol, new_cursor_index, new_indexes_of_selection, rounding_to='по умолчанию'):
@@ -1867,6 +1949,8 @@ main_win.bind('<Control-slash>', lambda key: create_added_win('?'))
 main_win.bind('<Control-h>', lambda key: create_added_win('h'))
 main_win.bind('<Control-H>', lambda key: create_added_win('h'))
 main_win.bind('<Control-space>', lambda key: (pyautogui.hotkey('Alt', 'Tab'), time.sleep(0.05), pyautogui.press('Enter')))
+main_win.bind('<Control-s>', save_example_to_history)
+main_win.bind('<Control-S>', save_example_to_history)
 
 main_win.bind('<Motion>', save_index)
 
@@ -1886,8 +1970,8 @@ main_win.bind('<Key>', real_key_calc)
 
 main_win.bind('<Control-equal>', lambda key: change_size_of_everything(scale=min(settings['scale'] + 1, 5), scale_was_zero=HEIGHT <= screen_width // 180))
 main_win.bind('<Control-minus>', lambda key: change_size_of_everything(scale=max(settings['scale'] - 1, 1), scale_was_zero=HEIGHT <= screen_width // 180))
-main_win.bind('<Control-Up>', lambda key: change_size_of_everything(scale=settings['scale'], scale_was_zero=True, change_result=False))
-main_win.bind('<Control-Down>', lambda key: change_size_of_everything(scale=0, change_result=False))
+main_win.bind('<Control-Up>', lambda key: change_size_of_everything(**(({'scale': 0} if HEIGHT > screen_width // 180 else {'scale': settings['scale'], 'scale_was_zero': True}) | {'change_result': False})))
+main_win.bind('<Control-Down>', lambda key: change_size_of_everything(**(({'scale': 0} if HEIGHT > screen_width // 180 else {'scale': settings['scale'], 'scale_was_zero': True}) | {'change_result': False})))
 
 
 def on_enter(event):
@@ -1909,11 +1993,10 @@ def focus_in(event):
         hwnd = user32.GetForegroundWindow()
         user32.PostMessageW(hwnd, 0x50, 0, user32.LoadKeyboardLayoutW("00000409", 0x1))
     main_win['bg'] = ('#' + '4f' * 3, '#' + 'a0' * 3)[settings['theme'] == 'light']
-    
     entry_box.config(bg=('#' + '27' * 3, '#' + 'e2' * 3)[settings['theme'] == 'light'])
     result.config(bg=entry_box.cget('bg'))
+    change_size_of_everything(scale=settings['scale'], scale_was_zero=True, change_result=False)
     config_fg_and_insertbackground()
-    change_width_of_entry(entry_box.get(), entry_box, result)
     
     
 def focus_out(event):
@@ -1940,6 +2023,7 @@ def close_main_win():
     elif added_win.winfo_viewable():
         manage_not_main_window_close()
     else:
+        recents['win theme alike calc'] = is_dark_theme() == (settings['theme'] == 'dark')
         recents['example before closing'] = example_value   
         recents['cursor before closing'] = cursor_index
         recents['closing time'].append(time.time())
@@ -1997,6 +2081,10 @@ def change_theme(event):
             text_entry.focus_force()
         text_entry.mark_set(INSERT, cursor_pos)
         text_entry.tag_add(SEL, start_sel, end_sel)
+        
+        
+if recents['win theme alike calc'] and is_dark_theme() != (settings['theme'] == 'dark'):
+    change_theme(None)
     
 
 main_win.bind('<Control-t>', change_theme)

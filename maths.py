@@ -141,7 +141,3 @@ class C:
             return mp.sin(angle) / mp.cos(angle)
         if func == 'ctg':
             return mp.cos(angle) / mp.sin(angle)
-        
-        
-class Value:
-    pows2_negative = [Decimal(2 ** -pow2_power) for pow2_power in range(1, 1001, 100)]
