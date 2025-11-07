@@ -46,7 +46,7 @@ def change_width_of_entry(text, entry1, entry2):
     
     
 def change_size_of_everything(scale, scale_was_zero=False, change_result=True):
-    global max_character_amount, place_coords
+    global max_character_amount, place_coords, last_time_main_win_geometry_change
     global WIDTH, HEIGHT, X_COORD, MAX_COORD
     max_character_amount = (174, 174, 152, 120, 99, 71)[scale]
     
@@ -71,6 +71,7 @@ def change_size_of_everything(scale, scale_was_zero=False, change_result=True):
     if change_result:
         result.delete(0, END)
         result.insert(END, f'{' ' * bool(example_value)}Максимум {max_character_amount} символ{get_correct_ending(max_character_amount, word_ends2)}')
+        last_time_main_win_geometry_change = time.time()
     if scale:
         settings['scale'] = scale
 
@@ -367,10 +368,6 @@ def solve_example(example=None):
         return 'Сочетание символов ")(" может быть неправильно растолковано. Возможно, ты имеешь ввиду ")•("?'
     elif example == 'h':
         return f'Задай размер памяти истории (от {min_history_length} до {max_history_length})'
-    elif example in places:
-        setting_y((recents['low'], recents['mid'], recents['top'])[places.index(example)])
-        main_win.geometry(f'{WIDTH}x{HEIGHT}+{X_COORD}+{settings['y']}')
-        return f'Калькулятор теперь {('внизу', 'в центре', 'вверху')[places.index(example)]}'
     elif example[:1] == 'h' and example[-1:] == '#':
         if not example[1:-1].isdigit():
             return 'Ошибка! Длина истории вычислений должна быть числом!'
@@ -906,20 +903,6 @@ create_added_win(None)
 change_size_of_everything(scale=settings['scale'])
 
 main_win.geometry(f'{WIDTH}x{HEIGHT}+{X_COORD}+{settings['y']}')
-
-
-def check_theme_change():
-    global last_theme
-    current = is_dark_theme()
-    if current != last_theme:
-        last_theme = current
-        if (settings['theme'] == 'dark') != current:
-            set_focus_from_not_my_application()
-            change_theme(None)
-            pyautogui.hotkey('ctrl', 'space')
-    main_win.after(200, check_theme_change)  # проверять каждую секунду
-last_theme = is_dark_theme()
-check_theme_change()
 
 
 def set_focus_from_not_my_application():
@@ -1609,13 +1592,11 @@ def ctrl_shift_y(self):
     
     
 def move_calculator_to_standard_positions():
-    global main_win, entry_box, result
+    global main_win, entry_box, result, last_time_main_win_geometry_change
     main_win.geometry(f'{WIDTH}x{HEIGHT}+{X_COORD}+{settings['y']}')
-    entry_box.focus_set()
-    if entry_box.get() in places:
-        entry_box.delete(0, END)
     result.delete(0, END)
     result.insert(END, f'{' ' * bool(example_value)}Калькулятор теперь {('внизу', 'в центре', 'вверху')[place_coords.index(settings['y'])]}')
+    last_time_main_win_geometry_change = time.time()
     
 
 def move_up(key):
@@ -2032,8 +2013,8 @@ def close_main_win():
         rewrite_json('settings')
         rewrite_json('recents')
         main_win.destroy()
+        
 
-      
 def config_fg_and_insertbackground():
     theme_is_light = settings['theme'] == 'light'
     entry_box.config(fg=('#' + 'd0' * 3, '#' + '0f' * 3)[theme_is_light] if example_value not in ('ထ', '+ထ', '-ထ') else ('#b0b054', '#3f3f8b')[theme_is_light])
@@ -2081,6 +2062,23 @@ def change_theme(event):
             text_entry.focus_force()
         text_entry.mark_set(INSERT, cursor_pos)
         text_entry.tag_add(SEL, start_sel, end_sel)
+        
+        
+
+def check_theme_or_geometry_change():
+    global last_theme
+    current = is_dark_theme()
+    if current != last_theme:
+        last_theme = current
+        if (settings['theme'] == 'dark') != current:
+            set_focus_from_not_my_application()
+            change_theme(None)
+            pyautogui.hotkey('ctrl', 'space')
+    if time.time() - last_time_main_win_geometry_change > 1.8 and re.search(r'Максимум \d+ символ(?:|а|ов)|Калькулятор теперь (?:вверху|в центре|внизу)', result.get()):
+        calculate_result()
+    main_win.after(100, check_theme_or_geometry_change)  # проверять каждую десятую секунды
+last_theme = is_dark_theme()
+check_theme_or_geometry_change()
         
         
 if recents['win theme alike calc'] and is_dark_theme() != (settings['theme'] == 'dark'):

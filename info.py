@@ -16,7 +16,6 @@ def rond(num, rounding_accuracy):
     return num.quantize(rounds[rounding_accuracy], ROUND_HALF_UP)
 
 invisible_win_title = 'невидимое окно'
-selection_for_next_focus = None
 temp_scopes, temp_scopes_with_smth = r'(?:\(-?\)|U-?u)', r'(?:\(.*?\)|U.*?u)'
 pattern_checking_on_empty_scopes = fr'(?:(?:sin|cos|tg|ctg|lg|ln){temp_scopes}|log{temp_scopes}by{temp_scopes_with_smth}|log{temp_scopes_with_smth}by{temp_scopes}|{temp_scopes})(?:[+\-•:^!]|mod|div)?'
 
@@ -29,9 +28,9 @@ special_keys = ('Up', 'Down', 'Left', 'Right', 'Control_L', 'Return', 'grave', '
                 'Control_R', 'Shift_L', 'Shift_R', 'Alt_L', 'Alt_R', 'Escape', 'Caps_Lock', 'apostrophe', 'quotedbl', 'braceleft', 'braceright')
 ghost_keys = ('Up', 'Down', 'Left', 'Right', 'Control_L', 'Control_R', 'Shift_L', 'Shift_R', 'Alt_L', 'Alt_R', 'Caps_Lock')
 rounds = [zeros(_) for _ in (400, 380, 360, 305)]
-places = ('low', 'mid', 'top')
 ending_symbols = list('+-•:^,%@k.') + list(united_symbols)
 correct_answer_num_symbols = '0123456789Ee-+.•^() '
+last_time_main_win_geometry_change = 0
 
 max_denominator = 10000
 
