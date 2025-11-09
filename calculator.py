@@ -17,7 +17,7 @@ from info import *
 
 user32 = ctypes.WinDLL("user32", use_last_error=True)
 
-calculator_greeting = 'нажми [?] или ctrl+[/], чтобы узнать, как использовать калькулятор'
+calculator_greeting = 'нажми [?] или ctrl+[/], чтобы узнать как использовать калькулятор'
 i_last_example = i_history = 'future'
 has_left_main_win_flag = True
 
@@ -46,7 +46,7 @@ def change_width_of_entry(text, entry1, entry2):
     
     
 def change_size_of_everything(scale, scale_was_zero=False, change_result=True):
-    global max_character_amount, place_coords, last_time_main_win_geometry_change
+    global max_character_amount, place_coords, last_time_main_win_geometry_change, val_before_last_main_win_geometry_change
     global WIDTH, HEIGHT, X_COORD, MAX_COORD
     max_character_amount = (174, 174, 152, 120, 99, 71)[scale]
     
@@ -69,6 +69,8 @@ def change_size_of_everything(scale, scale_was_zero=False, change_result=True):
     main_win.geometry(f'{WIDTH}x{HEIGHT}+{X_COORD}+{settings['y']}')
     
     if change_result:
+        if not re.search(calc_geometry_state_change_expression, result.get()):
+            val_before_last_main_win_geometry_change = result.get()
         result.delete(0, END)
         result.insert(END, f'{' ' * bool(example_value)}Максимум {max_character_amount} символ{get_correct_ending(max_character_amount, word_ends2)}')
         last_time_main_win_geometry_change = time.time()
@@ -101,7 +103,7 @@ with open(f'{FILES}/recents.json', 'r') as recents_file:
     except json.decoder.JSONDecodeError:
         recents = {'closing time': [0 for _ in range(3)], 'example before closing': '', 'cursor before closing': 0, 'cursor before moving calc': 0,
                    'recent examples': [['', '', '', ''] for _ in range(20)], 'last examples': [['', '', '', '', '', ''],],
-                   'low': MAX_COORD, 'mid': MAX_COORD // 2, 'top': 0, 'mouse coords': {'x': 0, 'y': 0}, 'win theme alike calc': True}
+                   'low': MAX_COORD, 'mid': MAX_COORD // 2, 'top': 0, 'mouse coords': {'x': 0, 'y': 0}, 'win theme alike calc': True, 'rounding info longer': 3}
         rewrite_json('recents')
 with open(f'{FILES}/settings.json', 'r') as settings_file:
     try:
@@ -109,6 +111,8 @@ with open(f'{FILES}/settings.json', 'r') as settings_file:
     except json.decoder.JSONDecodeError:
         settings = {'y': MAX_COORD, 'history length': 4000, 'theme': ('dark', 'light')[not is_dark_theme()], 'scale': 3, 'round': 'по умолчанию'}
         rewrite_json('settings')
+if recents['rounding info longer'] == 0:
+    recents['rounding info longer'] = (time.time() - recents['closing time'][-1] > 14 * DAY) * 3
 if time.time() - recents['closing time'][-3] < 14 * DAY:
     create_greeting()
     
@@ -261,7 +265,7 @@ def create_perfect_example(non_perfect_example):
 
 
 def rescope_example(unscoped_example):
-    unscoped_example = clear_q_with_content(unscoped_example)
+    unscoped_example = clear_q_with_content(unscoped_example, cursor_index)
     brackets = ''.join([i for i in unscoped_example if i in '()Uu'])
     
     scope_counter = 0
@@ -294,6 +298,7 @@ def rescope_example(unscoped_example):
 
 def modify_info(example):
     a = '– '
+    when_rad_when_deg = '(в радианах, если угол иррациональный, иначе в градусах)'
     if not example:
         return calculator_greeting
     if example == calculator_greeting.lower():
@@ -311,7 +316,7 @@ def modify_info(example):
     if example in ('mod', 'div'):
         a += {'mod': 'остаток от деления', 'div': 'целочисленное деление'}[example]
     if example in ('sin()', 'cos()', 'tg()', 'ctg()'):
-        a += {'sin()': 'синус', 'cos()': 'косинус', 'tg()': 'тангенс', 'ctg()': 'котангенс'}[example]
+        a += {'sin()': f'синус{when_rad_when_deg}', 'cos()': f'косинус{when_rad_when_deg}', 'tg()': f'тангенс{when_rad_when_deg}', 'ctg()': f'котангенс{when_rad_when_deg}'}[example]
     if example in ('^2', '^3', '^4'):
         a += {'^2': 'квадрат', '^3': 'куб', '^4': 'гиперкуб'}[example]
     if example in ('10^100', '10^303', '10^3003', '10^10^100'):
@@ -324,29 +329,31 @@ def modify_info(example):
 
 
 def q_solve_example(example):
-    return solve_example(clear_q_with_content(example))
+    return solve_example(clear_q_with_content(example, cursor_index))
     
 
 def solve_example(example=None):
-    global perfect_example, ROUND_ANSWER_TO_MANUALLY
+    global perfect_example, ROUND_ANSWER_TO_MANUALLY, last_time_round_change
     perfect_example = ''
     example = (entry_box.get() if example is None else example).lower()
     
     modified_info = modify_info(example)
     if modified_info is not None:
         return modified_info
-    
-    if 'qq' in example:
-        ROUND_ANSWER_TO_MANUALLY = settings['round'] = 'по умолчанию'
-        return f'{q_solve_example(example)} [округление по умолчанию]'
-    elif 'q' in example:
-        rounding_num = re.findall(r'(?<=q)-?\d+(?=#)', example)
+    cursor_or_selected_end_index = max(indexes_of_selection.values()) if indexes_of_selection else cursor_index
+    if example.count('q') == 1 and cursor_or_selected_end_index >= example.index('q') + 1:
+        last_time_round_change = time.time()
+        bind_left_button()
         mn, mx = min_rounding, max_rounding
+        if cursor_or_selected_end_index == example.index('q') + 1:
+            ROUND_ANSWER_TO_MANUALLY = settings['round'] = 'по умолчанию'
+            return f'{q_solve_example(example)} [округление по умолчанию (можешь дописать число округления: от {mn} знаков (перед запятой) до {mx} знаков (после запятой))]'
+        rounding_num = re.fullmatch(r'-?\d+', example[example.index('q') + 1:cursor_or_selected_end_index])
         if not rounding_num:
-            return f'{q_solve_example(example)} [Округление? Допиши до "qN#", где N — от {mn} знаков (перед запятой) до {mx} знаков (после запятой) или qq для округления по умолчанию)]'
+            return 'Неверная запись округления! Между q и кареткой должно быть целое число'
         rounding_num = int(rounding_num[0])
         if rounding_num > mx or rounding_num < mn:
-            return f'={q_solve_example(example)} [Необходимо задать количество знаков после запятой не более {mx}, но и не менее {mn}!]'
+            return f'{q_solve_example(example)} [Необходимо задать количество знаков после запятой не более {mx}, но и не менее {mn}!]'
         ROUND_ANSWER_TO_MANUALLY = settings['round'] = rounding_num
         manual_round_abs = abs(ROUND_ANSWER_TO_MANUALLY)
         num_of_ending_symbols = (0 < manual_round_abs % 10 < 5 and manual_round_abs // 10 != 1) + (manual_round_abs % 10 == 1 and manual_round_abs != 11)
@@ -745,6 +752,10 @@ def disable_editing_added_win_text(key):
         return "break"
     
     
+def disable_left_mouse_button_clicking(key):
+    return "break"
+    
+    
 def scroll_text(string_shift):
     added_win.focus_set()
     text_entry['state'] = DISABLED
@@ -980,7 +991,7 @@ def clean_from_scopes_with_emptyness(value):
     return value
 
 
-def make_it_future():
+def make_it_future(example_after_q=False):
     global i_last_example
     entry_box.delete(0, END)
     entry_box.insert(END, example_value)
@@ -1022,14 +1033,13 @@ def key_calc(key):
         make_it_future()
         bypass2 = True
     
-
     if type(key) is tuple:
         cursor_index = key[0]
         start, end = key
         keysym = 'changed text'
         bypass = True
         entry_box.delete(0, END)
-        entry_box.insert(END, example_value)
+        entry_box.insert(END, example_value)       
         calculate_result()
         entry_box.icursor(cursor_index)
         change_width_of_entry(entry_box.get(), entry_box, result)
@@ -1259,6 +1269,8 @@ def key_calc(key):
             add_to_last_examples_if_selection_or_cursor_change()
         elif keysym not in special_keys:
             example_value = insert_in_example(example_value, f'{keysym}')
+        if not (keysym.isdigit() or keysym in ('minus', 'BackSpace', 'Delete')) and ('q' in example_value and keysym != 'q' or example_value.count('q') ==  2):
+            example_value, _, _, cursor_index, indexes_of_selection, _ = recents['last examples'][-1]
         entry_box.insert(END, example_value)
         calculate_result()
         if keysym not in ('grave', 'Return', 'Escape'):
@@ -1267,7 +1279,8 @@ def key_calc(key):
     recent_examples = recents['recent examples']
     peak = ''
     for i in range(-2, -len(recent_examples), -1):
-        if len(recent_examples[-i][0]) >= len(recent_examples[-(i + 1)][0]) or 'q' in recent_examples[-(i + 1)][0] and 'q' not in recent_examples[-i][0]:
+        if ((len(recent_examples[-i][0]) >= len(recent_examples[-(i + 1)][0]) or 'q' in recent_examples[-(i + 1)][0] and 'q' not in recent_examples[-i][0]) 
+            and not ('q' in recent_examples[-(i + 1)][0] and 'q' in recent_examples[-i][0])):
             peak = recent_examples[-i][0]
     difference1, difference2 = (get_difference(old=peak, new=recent_examples[-i][0]) for i in (1, 2))
     
@@ -1592,8 +1605,10 @@ def ctrl_shift_y(self):
     
     
 def move_calculator_to_standard_positions():
-    global main_win, entry_box, result, last_time_main_win_geometry_change
+    global main_win, entry_box, result, last_time_main_win_geometry_change, val_before_last_main_win_geometry_change
     main_win.geometry(f'{WIDTH}x{HEIGHT}+{X_COORD}+{settings['y']}')
+    if not re.search(calc_geometry_state_change_expression, result.get()):
+        val_before_last_main_win_geometry_change = result.get()
     result.delete(0, END)
     result.insert(END, f'{' ' * bool(example_value)}Калькулятор теперь {('внизу', 'в центре', 'вверху')[place_coords.index(settings['y'])]}')
     last_time_main_win_geometry_change = time.time()
@@ -1610,6 +1625,8 @@ def move_down(key):
     
     
 def add_to_last_examples_if_selection_or_cursor_change():
+    if 'q' in example_value:
+        return
     value_to_add_plus = [example_value, clear_space_and_bracks_with_content(result.get().strip('=')) if example_value else '', '', cursor_index, indexes_of_selection if indexes_of_selection else None, settings['round']]
     if value_to_add_plus != recents['last examples'][-1]:
         recents['last examples'].append(value_to_add_plus)
@@ -1665,7 +1682,7 @@ def define_future_of_cursor(side, right_without_ctrls_and_shifts=False):
         return temp_cursor_index
     
     elif side == 'left':
-        i = len(re.search(r'(?:q.*?#|q*)$', replaced_abs_value[:temp_cursor_index])[0])
+        i = len(re.search(r'(?:q.*|q?)$', replaced_abs_value[:temp_cursor_index])[0])
         if i:
             temp_cursor_index -= i
             return temp_cursor_index
@@ -1697,6 +1714,8 @@ def define_future_of_cursor(side, right_without_ctrls_and_shifts=False):
     
 def set_cursor_to_the(key, start_or_end_or_num):
     global can_backspace, indexes_of_selection, cursor_index
+    if 'q' in example_value:
+        return
     make_it_future()
     if type(start_or_end_or_num) is str:
         entry_box.icursor((0, END)[start_or_end_or_num == 'end'])
@@ -1711,6 +1730,8 @@ def set_cursor_to_the(key, start_or_end_or_num):
     
 def set_cursor_shift_to_the(key, side_or_num, text_will_be_changed=False):
     global indexes_of_selection, cursor_index
+    if 'q' in example_value:
+        return
     make_it_future()
     
     if type(side_or_num) is str:
@@ -1821,6 +1842,7 @@ def paste_text(key):
     
 def change_text(pasted, start=None, end=None):
     global indexes_of_selection, cursor_index, can_backspace, example_value
+    
     make_it_future()
     if start is None:
         start = indexes_of_selection['start']
@@ -1872,6 +1894,7 @@ def on_freeing_left_button(event):
     
     
 def move_main_win(event):
+    global indexes_of_selection, cursor_index
     x, y, pre_x, pre_y = event.x_root, event.y_root, *recents['mouse coords'].values()
     if pre_x not in (-1, -2):
         if (pre_y - y) ** 2 + (pre_x - x) ** 2 < (HEIGHT // 2) ** 2:
@@ -2064,18 +2087,42 @@ def change_theme(event):
         text_entry.tag_add(SEL, start_sel, end_sel)
         
         
+def unbind_left_button():
+    entry_box.unbind('<ButtonPress-1>')
+    entry_box.unbind('<B1-Motion>')
+    entry_box.bind('<ButtonPress-1>', on_pushing_left_button)
+    entry_box.bind('<B1-Motion>', move_main_win)
+    
+    
+def bind_left_button():
+    entry_box.unbind('<ButtonPress-1>')
+    entry_box.unbind('<B1-Motion>')
+    entry_box.bind('<ButtonPress-1>', disable_left_mouse_button_clicking)
+    entry_box.bind("<B1-Motion>", disable_left_mouse_button_clicking)
+        
 
 def check_theme_or_geometry_change():
-    global last_theme
+    global last_theme, example_value, indexes_of_selection
     current = is_dark_theme()
     if current != last_theme:
         last_theme = current
-        if (settings['theme'] == 'dark') != current:
+        if (settings['theme'] == 'dark'):
             set_focus_from_not_my_application()
             change_theme(None)
             pyautogui.hotkey('ctrl', 'space')
-    if time.time() - last_time_main_win_geometry_change > 1.8 and re.search(r'Максимум \d+ символ(?:|а|ов)|Калькулятор теперь (?:вверху|в центре|внизу)', result.get()):
-        calculate_result()
+    res_val, entry_val = result.get(), entry_box.get()
+    if time.time() - last_time_main_win_geometry_change > 1.8 and re.search(calc_geometry_state_change_expression, res_val):
+        result.delete(0, END)
+        result.insert(END, val_before_last_main_win_geometry_change)
+    elif time.time() - last_time_round_change > (10 if recents['rounding info longer'] > 0 else 1) and 'q' in entry_val:
+        if recents['rounding info longer'] > 0:
+            recents['rounding info longer'] -= 1
+        if has_selection():
+            pyautogui.press('right' if cursor_index == get_selection()['start'] else 'left')
+        if 'q' in entry_val and main_win.focus_get() == entry_box:
+            pyautogui.hotkey('ctrl', 'backspace')
+            main_win.after(20, unbind_left_button)
+            example_value = entry_box.get()
     main_win.after(100, check_theme_or_geometry_change)  # проверять каждую десятую секунды
 last_theme = is_dark_theme()
 check_theme_or_geometry_change()
