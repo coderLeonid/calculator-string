@@ -2111,10 +2111,10 @@ def check_theme_or_geometry_change():
             change_theme(None)
             pyautogui.hotkey('ctrl', 'space')
     res_val, entry_val = result.get(), entry_box.get()
-    if time.time() - last_time_main_win_geometry_change > 1.8 and re.search(calc_geometry_state_change_expression, res_val):
+    if time.time() - last_time_main_win_geometry_change > 1.6 and re.search(calc_geometry_state_change_expression, res_val):
         result.delete(0, END)
         result.insert(END, val_before_last_main_win_geometry_change)
-    elif time.time() - last_time_round_change > (10 if recents['rounding info longer'] > 0 else 1) and 'q' in entry_val:
+    elif time.time() - last_time_round_change > (10 if recents['rounding info longer'] > 0 else 0.8) and 'q' in entry_val:
         if recents['rounding info longer'] > 0:
             recents['rounding info longer'] -= 1
         if has_selection():
