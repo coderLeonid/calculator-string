@@ -856,7 +856,7 @@ def finish_to_help_win():
     text_entry.delete(1.0, END)
     for i in range(len(splitted_text_entry)):
         val = splitted_text_entry[i] + '\n'
-        tag_rows = (12, 20, 11, 9, 9)
+        tag_rows = (12, 22, 11, 9, 9)
         a, b, c, d, e = (sum(tag_rows[:i + 1]) for i in range(5))
         size = (14, 16)[i in (2, a, b, c, d, e)]
         color = (black, purple, green, gray, red, red)[(i >= a) + (i >= b) + (i >= c) + (i >= d) + (i >= e)]
@@ -1090,6 +1090,9 @@ def key_calc(key):
             symbol_that_is_left_from_cursor = '#'
         if not symbol_that_is_right_from_cursor:
             symbol_that_is_right_from_cursor = '#'
+        if (symbol_that_is_left_from_cursor == '.' and (len(keysym) == 1 and keysym in 'sctklngpefraodmxbivVyujwzPEU' or keysym in keys_after_dot)):
+            example_value = insert_in_example(example_value, '5')
+            symbol_that_is_left_from_cursor = example_value[cursor_index - 1:cursor_index]
         if keysym == 'BackSpace':
             for i in range(3, 1, -1):
                 if example_value[cursor_index - i:cursor_index] in united_symbols:
@@ -1232,16 +1235,28 @@ def key_calc(key):
                     example_value = insert_in_example(example_value, '(-')
                     example_value = insert_in_example(example_value, ')', right=True)
         elif keysym in ('equal', 'plus'):
-            example_value = insert_in_example(example_value, '+')
+            if symbol_that_is_left_from_cursor in '•/^√':
+                example_value = insert_in_example(example_value, '2')
+                example_value = insert_in_example(example_value, '+')
+            elif symbol_that_is_left_from_cursor not in '0123456789φπeထ)|!' and keysym != 'plus':
+                example_value = insert_in_example(example_value, '1')
+            else:
+                example_value = insert_in_example(example_value, '+')
         elif keysym in ('slash', 'colon', 'semicolon'):
             if symbol_that_is_left_from_cursor == '/' and keysym == 'slash':
                 example_value = delete_in_example(example_value, -1)
                 example_value = insert_in_example(example_value, 'div')
-            elif symbol_that_is_left_from_cursor not in '0123456789φπeထ)|!' and keysym == 'semicolon':
-                if symbol_that_is_left_from_cursor not in '(' or example_value[cursor_index:cursor_index  + 1] not in ')':
-                    example_value = insert_in_example(example_value, '(')
+            elif symbol_that_is_left_from_cursor not in '0123456789φπeထ)|!' and keysym in ('semicolon', 'slash'):
+                if (symbol_that_is_left_from_cursor not in '(' or example_value[cursor_index:cursor_index  + 1] not in ')') and keysym == 'semicolon':
+                    example_value = insert_in_example(example_value, '(1/')
                     example_value = insert_in_example(example_value, ')', right=True)
-                example_value = insert_in_example(example_value, '1/')
+                elif symbol_that_is_left_from_cursor == '√':
+                    example_value = insert_in_example(example_value, '3/')
+                elif symbol_that_is_left_from_cursor in '•^':
+                    example_value = insert_in_example(example_value, f'({('', '-')[symbol_that_is_left_from_cursor == '•']}1/')
+                    example_value = insert_in_example(example_value, ')', right=True)
+                else:
+                    example_value = insert_in_example(example_value, '1/')
             else:
                 example_value = insert_in_example(example_value, '/')
         elif keysym == 'e':
