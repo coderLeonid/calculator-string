@@ -54,7 +54,9 @@ class C:
         if power_type == '^-':
             power = -power
         if power < 0:
-            return rond(1 / cls.pow(num, -power, power_type[0]), 2)
+            if type(power_result := cls.pow(num, -power, power_type[0])) is str:
+                return power_result
+            return rond(1 / power_result, 2)
         if power_type == 'k':
             power = rond(1 / Decimal(power), 0)
         if num >= 0 or rond(power, 1) % 1 == 0:
@@ -69,7 +71,7 @@ class C:
                 res = num ** power
                 return f'Результат вычисления {'степени' if power_type != 'k' else 'корня'} крайне неточен, поскольку результат числа слишком небольшой!' if res == 0 and num != 0 else res
         else:
-            return 'Чётный, дробный или слишком большой знаменатель у степени числа!' if power_type != 'k' else 'Нет решения среди действительных чисел, либо слишком большой числитель или степени у корня числа!'
+            return 'Чётный, дробный или слишком большой знаменатель у степени числа!' if power_type != 'k' else 'Нет решения среди действительных чисел, либо слишком большой числитель или степень у корня числа!'
         
     @classmethod_with_cache
     def radical(cls, num, power):
@@ -85,16 +87,28 @@ class C:
     def log(cls, num_by_log, base):
         num_by_log, base = Decimal(num_by_log), Decimal(base)
         
-        if base == 1 or rond(base, 1) <= 0:
-            return 'Не существует логарифма по неположительному, либо равному единице, основанию!'
-        if num_by_log <= 0:
-            return 'Не существует логарифма от неположительного логарифмируемого числа!'
-        if base > 10 ** 1001 or base < 10 ** -305:
-            return 'Слишком длинное основание логарифма!'
-        if num_by_log > 10 ** 1001 or num_by_log < 10 ** -305:
+        base_rond1, num_by_log_rond1 = rond(base, 1), rond(num_by_log, 1)
+        if base_rond1 in (-1, 0, 1):
+            return f'Не существует логарифма по основанию {int(rond(base, 1))} (бесконечное, либо пустое множество)!'
+        if abs(abs(base_rond1) - 1) < 10 ** -20:
+            return 'Поскольку основание логарифма слишком близко к единице ответ сильно неточный!'
+        if num_by_log_rond1 == 0:
+            return 'Не существует логарифма, если логарифмируемое число – ноль!'
+        if abs(num_by_log) > 10 ** 1001 or abs(num_by_log) < 10 ** -305:
             return 'Слишком большое или маленькое логарифмируемое число логарифма!'
-
-        return mp.log(num_by_log) / mp.log(base)
+        if abs(base) > 10 ** 1001 or abs(base) < 10 ** -305:
+            return 'Слишком большое или маленькое основание логарифма!'
+        if base_rond1 > 0 and num_by_log_rond1 < 0:
+            return 'Логарифм отрицательного числа по положительному основанию невозможен!'
+        log_result_if_both_args_positive = Decimal(str(mp.log(abs(num_by_log)) / mp.log(abs(base))))
+        log_result_if_both_args_positive_rond4 = rond(log_result_if_both_args_positive, 4)
+        print(log_result_if_both_args_positive)
+        print(log_result_if_both_args_positive_rond4)
+        if base_rond1 < 0 and num_by_log_rond1 < 0 and abs(log_result_if_both_args_positive_rond4 % 2) != 1:
+            return 'Логарифм числа меньше нуля по основанию меньше нуля может вернуть только нечётное число!'
+        if base_rond1 < 0 and num_by_log_rond1 > 0 and log_result_if_both_args_positive_rond4 % 2 != 0:
+            return 'Логарифм числа больше нуля по основанию меньше нуля может вернуть только чётное число!'
+        return log_result_if_both_args_positive if base_rond1 > 0 and num_by_log_rond1 > 0 else log_result_if_both_args_positive_rond4
     
     @classmethod
     def is_deg(cls, angle):

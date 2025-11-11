@@ -28,7 +28,7 @@ full_funcs_with_Uu = tuple((f'{i}{j}' for i in ('sin', 'cos', 'tg', 'ctg', 'lg',
 special_keys = ('Up', 'Down', 'Left', 'Right', 'Control_L', 'Return', 'grave', 'Tab', 'changed text', 'Win_L'
                 'Control_R', 'Shift_L', 'Shift_R', 'Alt_L', 'Alt_R', 'Escape', 'Caps_Lock', 'apostrophe', 'quotedbl', 'braceleft', 'braceright')
 ghost_keys = ('Up', 'Down', 'Left', 'Right', 'Control_L', 'Control_R', 'Shift_L', 'Shift_R', 'Alt_L', 'Alt_R', 'Caps_Lock')
-rounds = [zeros(_) for _ in (400, 380, 360, 305)]
+rounds = [zeros(_) for _ in (400, 380, 360, 305, 100)]
 ending_symbols = list('+-•:^,%@k.') + list(united_symbols)
 correct_answer_num_symbols = '0123456789Ee-+.•^() '
 last_time_main_win_geometry_change = 0
@@ -90,7 +90,7 @@ text_help_calc = ("Строка-калькулятор. Быстрый ввод 
                   " ⬥ В модуле умножить проставляется только при [a], так как пример можно понять по-разному ('|5+5|7+8|2+2|', как '|5+5|•7+8•|2+2|' или '|5+5•|7+8|•2+2|')\n"
                   "\nЛайфхаки и преимущества!\n"
                   " ★ Быстрый ввод примера\n"
-                  " ★ Посчитает даже выражения вида (-32)^(3/5), (-5.2)!, (-11)mod(-3)\n"
+                  " ★ Посчитает даже выражения вида (-32)^(3/5), (-5.2)!, (-11)mod(-3), log(4)by(-2)\n"
                   " ★ Точное вычисление тригонометрических и логарифмических функций\n"
                   " ★ Учёт недостающих символов '2+2)•3•|1+1' → '(2+2)•3•|1+1|', '5+-4' → '5+(-4)'\n"
                   " ★ Удаление лишних скобок и модулей при добавлении в историю '(|(2+2)|•3' → '|2+2|•3'\n"
