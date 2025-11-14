@@ -22,6 +22,13 @@ i_last_example = i_history = 'future'
 has_left_main_win_flag = True
 
 
+def clean_pattern_empty_scopes(example_to_clean):
+    while re.search(pattern_checking_on_empty_scopes, example_to_clean):
+        # if re.search(rf'{pattern_checking_on_empty_scopes}', )
+        example_to_clean = re.sub(pattern_checking_on_empty_scopes, '', example_to_clean)
+    return example_to_clean
+
+
 def get_text_length(text, entry):
     font_obj = font.Font(font=entry.cget("font"))
     return font_obj.measure(text)
@@ -204,8 +211,7 @@ def create_perfect_example(non_perfect_example):
         if non_perfect_example[i + 1] == '|':
             non_perfect_example = non_perfect_example[:i + 1] + 'Uu'[non_perfect_example[i] in '0123456789!)uπφe' or bool(re.match(r'[+•:^!\)]|mod|div', non_perfect_example[i + 2:]))] + non_perfect_example[i + 2:]
     
-    while re.search(pattern_checking_on_empty_scopes, non_perfect_example):
-        non_perfect_example = re.sub(pattern_checking_on_empty_scopes, '', non_perfect_example)
+    non_perfect_example = clean_pattern_empty_scopes(non_perfect_example)
            
     non_perfect_example = f'({non_perfect_example})'
     
@@ -336,8 +342,8 @@ def solve_example(example=None):
     global perfect_example, ROUND_ANSWER_TO_MANUALLY, last_time_round_change
     perfect_example = ''
     example = (entry_box.get() if example is None else example).lower()
-    
     modified_info = modify_info(example)
+    
     if modified_info is not None:
         return modified_info
     cursor_or_selected_end_index = max(indexes_of_selection.values()) if indexes_of_selection else cursor_index
@@ -368,7 +374,7 @@ def solve_example(example=None):
     for j in range(-3, 0):
         if example[j:] in ending_symbols:
             return 'Ошибка в конце примера!'
-    
+        
     if ' ' in example and len(set(example)) == 1:
         return 'Зачем тебе пробелы?'
     elif ')(' in example:
@@ -409,18 +415,15 @@ def solve_example(example=None):
     if '$' in example:
         return 'Почему символ "$" есть в примере?'
     pi_replaced, e_replaced, fi_replaced = f'({C.pi}+0)', f'({C.e}+0)', f'({C.fi}+0)'
-    
+
     pre_example = f'({example})'
     for i in range(len(pre_example) - 2):
         if pre_example[i + 1] == '|':
             pre_example = pre_example[:i + 1] + 'Uu'[pre_example[i] in '0123456789!)ueπφ' or bool(re.match(r'[+•:^!\)]|mod|div', pre_example[i + 2:]))] + pre_example[i + 2:]
-      
+            
     example = pre_example[1:-1]
-    
-    while re.search(pattern_checking_on_empty_scopes, example):
-        example = re.sub(pattern_checking_on_empty_scopes, '', example)
+    example = clean_pattern_empty_scopes(example)
     example = re.sub(r'[Uu]', '|', example)
-    
     if re.search(r'[eπφ][eπφ(]|[eπφ)][eπφ]', example):
         return 'Рядом с константой не может быть ни скобки, ни константы!'
     example = example.replace('π', pi_replaced).replace('φ', fi_replaced).replace('e', e_replaced)
@@ -430,7 +433,7 @@ def solve_example(example=None):
     example = f'({example})'.replace('-)', ')')[1:-1]
     example = re.sub(r'(?:(?<=mod|div|sin|cos|ctg|log)|(?<=[+\-•/^(])|(?<=ln|lg|by)),', r'0,', example)
     example = re.sub(r'(?:[\+\-•:^,]|mod|div)(?=\))', r'', f'({example})')
-
+    
     for i in range(len(example) - 2):
         if example[i + 1] == '|':
             example = example[:i + 1] + 'Uu'[example[i] in '0123456789!)ueπφ' or bool(re.match(r'[+•:^!\)]|mod|div', example[i + 2:]))] + example[i + 2:]
@@ -446,7 +449,6 @@ def solve_example(example=None):
         return 'Рядом с константой не может быть модуля!'
     while example_brackets[:1] == '(' and example_brackets[-1:] == ')':
         example_brackets = example_brackets[1:-1]
-    
     while any([i in example_brackets for i in ('()', 'Uu', '<>')]):
         example_brackets = example_brackets.replace('()', '').replace('Uu', '').replace('<>', '')
     if re.fullmatch(r'(?:U|u|\(|\))+', example):
@@ -589,7 +591,7 @@ def solve_example(example=None):
                     if is_num(inner_example[i]) and is_num(inner_example[i + 2]) and inner_example[i + 1] in ('•', ':', 'mod', 'div'):
                         num1, num2 = Decimal(inner_example[i]), Decimal(inner_example[i + 2])
                         if inner_example[i + 1] in ('•', ':'):
-                            if num1 == num2 == 0:
+                            if num1 == num2 == 0 and inner_example[i + 1] == ':':
                                 return 'Неопределённость 0/0'
                             inner_example[i:i + 3] = ['R', 'R', str(rond((num1 * num2 if inner_example[i + 1] != ':' else num1 / num2), 0))]
                         if inner_example[i + 1] in ('mod', 'div'):
@@ -984,8 +986,7 @@ def clean_from_scopes_with_emptyness(value):
             
     value = value[1:-1]
     
-    while re.search(pattern_checking_on_empty_scopes, value):
-        value = re.sub(pattern_checking_on_empty_scopes, '', value)
+    value = clean_pattern_empty_scopes(value)
     value = re.sub(r'[Uu]', '|', value)
     value = re.sub(r'(?:[\+\-•:^,]|mod|div)(?=\))', r'', f'({value})')[1:-1]
     return value
@@ -1018,10 +1019,10 @@ def get_difference(old, new):
 
 
 def insertion_if_division_of_one(left_symbol, arg, example):
-    if re.fullmatch(r'(?:[^0-9\.]|^)1', example_value[cursor_index - 2:cursor_index]):
-        return insert_in_example(example_value, f'/{arg}')
+    if re.fullmatch(r'(?:[^0-9\.]|^)1', example[max(cursor_index - 2, 0):cursor_index]):
+        return insert_in_example(example, f'/{arg}')
     else:
-        return insert_in_example(example_value, f'{'•' if left_symbol in '0123456789φπeထ)!' else ''}{arg}')
+        return insert_in_example(example, f'{'•' if left_symbol in '0123456789φπeထ)!' else ''}{arg}')
 
 
 def key_calc(key):
@@ -1140,12 +1141,9 @@ def key_calc(key):
             pass  # Этот символ можно использовать для пустого нажатия, удалять запрещено!
         elif keysym in ('ampersand', 'greater', 'less', 'braceleft', 'braceright', 'underscore'):
             pass
-        elif keysym == 'apostrophe':
+        elif keysym in ('apostrophe', 'quotedbl'):
             indexes_of_selection = None
-            pyperclip.copy(result.get().replace('•', '*').replace('ထ', 'inf').replace('=', ''))
-        elif keysym == 'quotedbl':
-            indexes_of_selection = None
-            pyperclip.copy(example_value.replace('•', '*').replace('ထ', 'inf'))
+            pyperclip.copy(result.get().replace('•', '*').replace('ထ', 'inf').replace('=', '') if keysym == 'quotedbl' else example_value.replace('•', '*').replace('ထ', 'inf'))
         elif len(keysym) == 1 and keysym in 'zMBTQPEU':
             if keysym == 'U':
                 example_value = insert_in_example(example_value, '^4')
@@ -1273,7 +1271,10 @@ def key_calc(key):
         elif keysym == 'numbersign':
             example_value = insert_in_example(example_value, '#')
         elif keysym.isdigit():
-            example_value = insert_in_example(example_value, f'{'/' if symbol_that_is_left_from_cursor in 'π' else '•' if symbol_that_is_left_from_cursor in 'φe)!' else ''}{keysym}')
+            if re.fullmatch(r'(?:[^0-9\.]|^)0', example_value[max(cursor_index - 2, 0):cursor_index]):
+                example_value = insert_in_example(example_value, '•0')
+            else:
+                example_value = insert_in_example(example_value, f'{'/' if symbol_that_is_left_from_cursor in 'π' else '•' if symbol_that_is_left_from_cursor in 'φe)!' else ''}{keysym}')
         elif keysym in ('Left', 'Right'):
             for i in range(4, 1, -1):
                 if (example_value[cursor_index:cursor_index + i], example_value[cursor_index - i:cursor_index])[keysym == 'Left'] in (united_symbols + united_symbols_with_scopes):
@@ -1724,6 +1725,8 @@ def define_future_of_cursor(side, right_without_ctrls_and_shifts=False):
                 if replaced_abs_value[i:temp_cursor_index].count('log') == replaced_abs_value[i:temp_cursor_index].count('by'):
                     break
             temp_cursor_index = i
+        if re.search(r'log$', replaced_abs_value[:temp_cursor_index]):
+            temp_cursor_index -= 3
         return temp_cursor_index
     
     

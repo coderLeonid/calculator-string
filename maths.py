@@ -102,8 +102,6 @@ class C:
             return 'Логарифм отрицательного числа по положительному основанию невозможен!'
         log_result_if_both_args_positive = Decimal(str(mp.log(abs(num_by_log)) / mp.log(abs(base))))
         log_result_if_both_args_positive_rond4 = rond(log_result_if_both_args_positive, 4)
-        print(log_result_if_both_args_positive)
-        print(log_result_if_both_args_positive_rond4)
         if base_rond1 < 0 and num_by_log_rond1 < 0 and abs(log_result_if_both_args_positive_rond4 % 2) != 1:
             return 'Логарифм числа меньше нуля по основанию меньше нуля может вернуть только нечётное число!'
         if base_rond1 < 0 and num_by_log_rond1 > 0 and log_result_if_both_args_positive_rond4 % 2 != 0:
